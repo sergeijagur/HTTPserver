@@ -26,6 +26,7 @@ class Server {
     public Server() throws IOException {
         server.createContext("/test", new MyHttpHandler());
         server.createContext("/photo.jpeg", new MyHttpHandler2());
+        server.createContext("/personal-code", new MyHttpHandler2());
         server.setExecutor(null);
         server.start();
 //        logger.info(" Server started on port 8001");
@@ -81,7 +82,6 @@ class Server {
                 response = handleGetRequest(exchange);
             }
             handleResponse(exchange, response);
-
         }
 
         private String handleGetRequest(HttpExchange exchange) throws IOException {
@@ -95,6 +95,17 @@ class Server {
         private void handleResponse(HttpExchange exchange, String response) throws IOException {
             OutputStream outputStream = exchange.getResponseBody();
 
+            if (response.equals("personal-code")) {
+                FileInputStream in = new FileInputStream("index.html");
+                byte[] bytes = in.readAllBytes();
+                in.close();
+
+                exchange.getResponseHeaders().add("Comtent-type", "text/html");
+                exchange.sendResponseHeaders(200, bytes.length);
+                outputStream.write(bytes);
+                outputStream.close();
+            }
+
             InputStream picIn = new FileInputStream(response);
             byte[] bytes = picIn.readAllBytes();
             picIn.close();
@@ -105,9 +116,7 @@ class Server {
             outputStream.flush();
             outputStream.close();
 
-
         }
-
 
     }
 
