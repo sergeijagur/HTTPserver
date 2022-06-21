@@ -26,8 +26,8 @@ class Server {
 //        server.createContext("/photo.jpeg", new MyHttpHandler2());
 //        server.createContext("/Cat.jpeg", new MyHttpHandler2());
         server.createContext("/files/", new PictureHttpHandler());
-        server.createContext("/personal-code", new HtmlHttpHandler());
-        server.createContext("/personal-code/generator", new HtmlHttpHandler());
+        server.createContext("/personal-code", new PersonalCodeHttpHandler());
+        server.createContext("/personal-code/generator", new PersonalCodeGeneratorHttpHandler());
         server.setExecutor(null);
         server.start();
     }
@@ -103,8 +103,76 @@ class Server {
         }
 
 
+    private class PersonalCodeHttpHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String response = "";
+            if ("GET".equals(exchange.getRequestMethod())) {
+                response = handleGetRequest(exchange);
+            }
+            handleResponse(exchange, response);
+        }
 
-    private class HtmlHttpHandler implements HttpHandler {
+        private String handleGetRequest(HttpExchange exchange) throws IOException {
+            // mis siis ku tuleb mitu & ???  kasitle requesti teistmoodi!!!
+            if (exchange.getRequestURI().toString().contains("&")) {
+                String[] strings = exchange.getRequestURI().toString().split("&");
+                String gender = strings[0].split("=")[1];
+                String birthday = strings[1].split("=")[1];
+                return gender + "&" + birthday;
+            } else if (exchange.getRequestURI().toString().contains("=")) {
+                return exchange.
+                        getRequestURI()
+                        .toString()
+                        .split("\\?")[1]
+                        .split("=")[1];
+            }
+            return exchange.
+                    getRequestURI()
+                    .toString()
+                    .substring(1);
+        }
+
+        private void handleResponse(HttpExchange exchange, String response) throws IOException {
+            OutputStream outputStream = exchange.getResponseBody();
+
+            if (response.equals("personal-code")) {
+                FileInputStream in = new FileInputStream("html_files/index.html");
+                byte[] bytes = in.readAllBytes();
+                in.close();
+                exchange.getResponseHeaders().add("Content-type", "text/html");
+                exchange.sendResponseHeaders(200, bytes.length);
+                outputStream.write(bytes);
+                outputStream.close();
+            } else {
+
+
+            boolean validPersonalCode = new PersonalCodeService(new EstonianPersonalCode(response)).isValidPersonalCode();
+            String isValid = null;
+            if (validPersonalCode) {
+                isValid = " is valid";
+            } else if (!validPersonalCode) {
+                isValid = " is not valid";
+            }
+            StringBuilder htmlBuilder = new StringBuilder();
+            htmlBuilder.append("<html>").
+                    append("<body>").
+                    append("<h1>").
+                    append("Personal code " + response + isValid)
+                    .append("</h1>")
+                    .append("</body>")
+                    .append("</html>");
+            String htmlResponse = htmlBuilder.toString();
+            exchange.sendResponseHeaders(200, htmlResponse.length());
+            outputStream.write(htmlResponse.getBytes());
+            outputStream.flush();
+            outputStream.close();
+
+            }
+        }
+
+    }
+    private class PersonalCodeGeneratorHttpHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String response = "";
@@ -115,8 +183,6 @@ class Server {
         }
 
         private String handleGetRequest(HttpExchange exchange) throws IOException {
-
-
             // mis siis ku tuleb mitu & ???  kasitle requesti teistmoodi!!!
             if (exchange.getRequestURI().toString().contains("&")) {
                 String[] strings = exchange.getRequestURI().toString().split("&");
@@ -131,7 +197,7 @@ class Server {
                         .split("\\?")[1]
                         .split("=")[1];
             }
-             return exchange.
+            return exchange.
                     getRequestURI()
                     .toString()
                     .substring(1);
@@ -139,24 +205,8 @@ class Server {
 
         private void handleResponse(HttpExchange exchange, String response) throws IOException {
             OutputStream outputStream = exchange.getResponseBody();
-            if (response.equals("personal-code")) {
-                FileInputStream in = new FileInputStream("html_files/index.html");
-                byte[] bytes = in.readAllBytes();
-                in.close();
-                exchange.getResponseHeaders().add("Content-type", "text/html");
-                exchange.sendResponseHeaders(200, bytes.length);
-                outputStream.write(bytes);
-                outputStream.close();
-            }
-            if (response.equals("personal-code/generator")) {
-                FileInputStream in = new FileInputStream("html_files/code-generator.html");
-                byte[] bytes = in.readAllBytes();
-                in.close();
-                exchange.getResponseHeaders().add("Content-type", "text/html");
-                exchange.sendResponseHeaders(200, bytes.length);
-                outputStream.write(bytes);
-                outputStream.close();
-            } else if (response.contains("male")) {
+
+            if (response.contains("male")) {
                 String[] strings = response.split("&");
                 String personalCode = new PersonalCodeService(new EstonianPersonalCodeGenerator(new NewInfoRequest(strings[1], strings[0]))).generatePersonalCode();
                 StringBuilder htmlBuilder = new StringBuilder();
@@ -172,35 +222,25 @@ class Server {
                 outputStream.write(htmlResponse.getBytes());
                 outputStream.flush();
                 outputStream.close();
-            } else {
-                boolean validPersonalCode = new PersonalCodeService(new EstonianPersonalCode(response)).isValidPersonalCode();
-                OutputStream out = exchange.getResponseBody();
-                String isValid;
-                if (validPersonalCode) {
-                    isValid = " is valid";
-                } else {
-                    isValid = " is not valid";
-                }
-                StringBuilder htmlBuilder = new StringBuilder();
-                htmlBuilder.append("<html>").
-                        append("<body>").
-                        append("<h1>").
-                        append("Personal code " + response + isValid )
-                        .append("</h1>")
-                        .append("</body>")
-                        .append("</html>");
-                String htmlResponse = htmlBuilder.toString();
-                exchange.sendResponseHeaders(200, htmlResponse.length());
-                outputStream.write(htmlResponse.getBytes());
-                outputStream.flush();
+            }
+            else
+
+        {
+                FileInputStream in = new FileInputStream("html_files/code-generator.html");
+                byte[] bytes = in.readAllBytes();
+                in.close();
+                exchange.getResponseHeaders().add("Content-type", "text/html");
+                exchange.sendResponseHeaders(200, bytes.length);
+                outputStream.write(bytes);
                 outputStream.close();
+            }
             }
 
         }
 
     }
 
-}
+
 
 
 
