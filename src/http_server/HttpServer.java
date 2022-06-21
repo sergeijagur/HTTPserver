@@ -9,8 +9,6 @@ import personalCode.html.NewInfoRequest;
 
 import java.io.*;
 import java.net.InetSocketAddress;
-import java.time.LocalDate;
-import java.util.Arrays;
 
 
 class Server {
@@ -22,14 +20,14 @@ class Server {
 
 
     HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 8085), 1);
-//    ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
 
     public Server() throws IOException {
         server.createContext("/test", new MyHttpHandler());
-        server.createContext("/photo.jpeg", new MyHttpHandler2());
-        server.createContext("/Cat.jpeg", new MyHttpHandler2());
-        server.createContext("/personal-code", new MyHttpHandler2());
-        server.createContext("/personal-code-generator", new MyHttpHandler2());
+//        server.createContext("/photo.jpeg", new MyHttpHandler2());
+//        server.createContext("/Cat.jpeg", new MyHttpHandler2());
+        server.createContext("/files/", new PictureHttpHandler());
+        server.createContext("/personal-code", new HtmlHttpHandler());
+        server.createContext("/personal-code/generator", new HtmlHttpHandler());
         server.setExecutor(null);
         server.start();
     }
@@ -74,7 +72,7 @@ class Server {
         }
     }
 
-    private class MyHttpHandler2 implements HttpHandler {
+    private class PictureHttpHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String response = "";
@@ -85,59 +83,78 @@ class Server {
         }
 
         private String handleGetRequest(HttpExchange exchange) throws IOException {
-            String result;
-
-            if (exchange.getRequestURI().toString().contains("&")) {
-                String[] strings = exchange.getRequestURI().toString().split("&");
-                String gender = strings[0].split("=")[1];
-                String birthday = strings[1].split("=")[1];
-               return result = gender + "&" + birthday;
-            }
-            if (exchange.getRequestURI().toString().contains("=")) {
-                 return exchange.
-                        getRequestURI()
-                        .toString()
-                        .split("\\?")[1]
-                        .split("=")[1];
-            }  else {
                 return exchange.
                         getRequestURI()
                         .toString()
                         .substring(1);
-            }
-
         }
-
 
         private void handleResponse(HttpExchange exchange, String response) throws IOException {
             OutputStream outputStream = exchange.getResponseBody();
-            if (response.equals("personal-code")) {
-                FileInputStream in = new FileInputStream("index.html");
-                byte[] bytes = in.readAllBytes();
-                in.close();
-                exchange.getResponseHeaders().add("Comtent-type", "text/html");
-                exchange.sendResponseHeaders(200, bytes.length);
-                outputStream.write(bytes);
-                outputStream.close();
-            }
-            if (response.equals("personal-code-generator")) {
-                FileInputStream in = new FileInputStream("code-generator.html");
-                byte[] bytes = in.readAllBytes();
-                in.close();
-                exchange.getResponseHeaders().add("Comtent-type", "text/html");
-                exchange.sendResponseHeaders(200, bytes.length);
-                outputStream.write(bytes);
-                outputStream.close();
-            }
-            if (response.contains(".jpeg")) {
                 InputStream picIn = new FileInputStream(response);
                 byte[] bytes = picIn.readAllBytes();
                 picIn.close();
-
                 exchange.getResponseHeaders().add("Content-type", "image/jpeg");
                 exchange.sendResponseHeaders(200, bytes.length);
                 outputStream.write(bytes);
                 outputStream.flush();
+                outputStream.close();
+            }
+        }
+
+
+
+    private class HtmlHttpHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String response = "";
+            if("GET".equals(exchange.getRequestMethod())) {
+                response = handleGetRequest(exchange);
+            }
+            handleResponse(exchange, response);
+        }
+
+        private String handleGetRequest(HttpExchange exchange) throws IOException {
+
+
+            // mis siis ku tuleb mitu & ???  kasitle requesti teistmoodi!!!
+            if (exchange.getRequestURI().toString().contains("&")) {
+                String[] strings = exchange.getRequestURI().toString().split("&");
+                String gender = strings[0].split("=")[1];
+                String birthday = strings[1].split("=")[1];
+                return gender + "&" + birthday;
+            }
+            else if (exchange.getRequestURI().toString().contains("=")) {
+                return  exchange.
+                        getRequestURI()
+                        .toString()
+                        .split("\\?")[1]
+                        .split("=")[1];
+            }
+             return exchange.
+                    getRequestURI()
+                    .toString()
+                    .substring(1);
+        }
+
+        private void handleResponse(HttpExchange exchange, String response) throws IOException {
+            OutputStream outputStream = exchange.getResponseBody();
+            if (response.equals("personal-code")) {
+                FileInputStream in = new FileInputStream("html_files/index.html");
+                byte[] bytes = in.readAllBytes();
+                in.close();
+                exchange.getResponseHeaders().add("Content-type", "text/html");
+                exchange.sendResponseHeaders(200, bytes.length);
+                outputStream.write(bytes);
+                outputStream.close();
+            }
+            if (response.equals("personal-code/generator")) {
+                FileInputStream in = new FileInputStream("html_files/code-generator.html");
+                byte[] bytes = in.readAllBytes();
+                in.close();
+                exchange.getResponseHeaders().add("Content-type", "text/html");
+                exchange.sendResponseHeaders(200, bytes.length);
+                outputStream.write(bytes);
                 outputStream.close();
             } else if (response.contains("male")) {
                 String[] strings = response.split("&");
