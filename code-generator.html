@@ -6,23 +6,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-<br>
-<br>
+
 <button value="" onclick="window.location.href='http://localhost:8085/photo.jpeg'">Picture</button>
 <br>
 <br>
-<button value="" onclick="window.location.href='http://localhost:8085/personal-code-generator'">Personal code generator</button>
-<br>
-<br>
 <h1>
-    Control if personal code is valid
+    Generate new personal code
 </h1>
 
 <form action="" method="GET">
-    <input type="number" id="personalcode" name="personalcode"  placeholder="isikukood" min="1000000000" max="99999999999">
+    <la>GENDER</la>
+
     <br>
     <br>
-    <button type="submit" id="submit">Control personal code</button>
+    <div data-name = "check">
+    <input type="radio" name="gender" id="male" value="male">
+    <label for="male">Male</label><br>
+    <input type="radio" name="gender" id="female" value="female">
+    <label for="female">Female</label>
+    </div>
+    <br>
+    <br>
+    <input type="date" id="dateofbirth" name="dateofbirth"  placeholder="sünnikuupäev">
+    <br>
+    <br>
+    <button type="submit" id="submit">Generate personal code</button>
     <br>
     <br>
 </form>
