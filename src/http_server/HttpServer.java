@@ -27,6 +27,7 @@ class Server {
     public Server() throws IOException {
         server.createContext("/test", new MyHttpHandler());
         server.createContext("/photo.jpeg", new MyHttpHandler2());
+        server.createContext("/Cat.jpeg", new MyHttpHandler2());
         server.createContext("/personal-code", new MyHttpHandler2());
         server.createContext("/personal-code-generator", new MyHttpHandler2());
         server.setExecutor(null);
@@ -128,7 +129,7 @@ class Server {
                 outputStream.write(bytes);
                 outputStream.close();
             }
-            if (response.equals("photo.jpeg")) {
+            if (response.contains(".jpeg")) {
                 InputStream picIn = new FileInputStream(response);
                 byte[] bytes = picIn.readAllBytes();
                 picIn.close();
