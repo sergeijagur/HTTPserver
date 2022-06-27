@@ -1,14 +1,17 @@
 package http_server;
 
+import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import personalCode.*;
 import personalCode.html.EstonianPersonalCodeGenerator;
 import personalCode.html.NewInfoRequest;
+import personalCode.html.PersonalInfo;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 
 
 class Server {
@@ -22,11 +25,67 @@ class Server {
         server.createContext("/pictures/", new PictureHttpHandler());
         server.createContext("/main", new PersonalCodeHttpHandler());
         server.createContext("/personal-code-generator", new PersonalCodeGeneratorHttpHandler());
+        server.createContext("/post", new PostHttpHandler());
         server.setExecutor(null);
         server.start();
     }
 
-//    private class MyHttpHandler implements HttpHandler {
+    private class PostHttpHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            PersonalInfo person = new PersonalInfo();
+            if (exchange.getRequestMethod().equals("POST")) {
+                person = handleRequest(exchange);
+            }
+            handleResponse(exchange, person);
+
+        }
+
+        public PersonalInfo handleRequest(HttpExchange exchange) throws IOException {
+
+            InputStream is = exchange.getRequestBody();
+            byte[] bytes = is.readAllBytes();
+            is.close();
+            String a = new String(bytes, "ISO-8859-15");
+            System.out.println(a);
+            String[] split = a.split("&");
+            PersonalInfo person = new PersonalInfo();
+            for (String s : split) {
+                if (s.contains("firstName")) {
+                    person.setFirstName(s.split("=")[1]);
+                }else if (s.contains("lastName")) {
+                    person.setLastName(s.split("=")[1]);
+                }else if (s.contains("birthDay")) {
+                    person.setDateOfBirth(s.split("=")[1]);
+                }else if (s.contains("pk")) {
+                    person.setPersonalCode(s.split("=")[1]);
+                }
+            }
+
+            return person;
+        }
+
+
+        private void handleResponse(HttpExchange exchange, PersonalInfo person) throws IOException {
+            OutputStream outputStream = exchange.getResponseBody();
+            StringBuilder htmlBuilder = new StringBuilder();
+            htmlBuilder.append("<html>").
+                    append("<body>").
+                    append("<h1>").
+                    append("POST message is sent ")
+                    .append("</h1>")
+                    .append("</body>")
+                    .append("</html>");
+            String htmlResponse = htmlBuilder.toString();
+            exchange.sendResponseHeaders(200, htmlResponse.length());
+            outputStream.write(htmlResponse.getBytes());
+            outputStream.flush();
+            outputStream.close();
+        }
+
+    }
+
+
 //        @Override
 //        public void handle(HttpExchange httpExchange) throws IOException {
 //
