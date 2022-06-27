@@ -1,6 +1,5 @@
 package http_server;
 
-import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -11,7 +10,10 @@ import personalCode.html.PersonalInfo;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 
 class Server {
@@ -38,16 +40,13 @@ class Server {
                 person = handleRequest(exchange);
             }
             handleResponse(exchange, person);
-
         }
 
         public PersonalInfo handleRequest(HttpExchange exchange) throws IOException {
-
             InputStream is = exchange.getRequestBody();
             byte[] bytes = is.readAllBytes();
             is.close();
             String a = new String(bytes, "ISO-8859-15");
-            System.out.println(a);
             String[] split = a.split("&");
             PersonalInfo person = new PersonalInfo();
             for (String s : split) {
@@ -61,18 +60,23 @@ class Server {
                     person.setPersonalCode(s.split("=")[1]);
                 }
             }
-
             return person;
         }
 
-
         private void handleResponse(HttpExchange exchange, PersonalInfo person) throws IOException {
+            String p = person.getFirstName() + " " + person.getLastName() + "," + person.getPersonalCode()+ "\n";
+            FileInputStream read = new FileInputStream("inimesed.txt");
+            byte[] bytes = read.readAllBytes();
+            OutputStream fileSave = new FileOutputStream("inimesed.txt");
+            fileSave.write(bytes);
+            fileSave.write(p.getBytes());
+            fileSave.close();
             OutputStream outputStream = exchange.getResponseBody();
             StringBuilder htmlBuilder = new StringBuilder();
             htmlBuilder.append("<html>").
                     append("<body>").
                     append("<h1>").
-                    append("POST message is sent ")
+                    append("Person is added to list")
                     .append("</h1>")
                     .append("</body>")
                     .append("</html>");
