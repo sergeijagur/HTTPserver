@@ -15,64 +15,58 @@ class Server {
 
     public static void main(String[] args) throws IOException {
         new Server();
-
     }
-
-
     HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 8085), 1);
 
     public Server() throws IOException {
-        server.createContext("/test", new MyHttpHandler());
-//        server.createContext("/photo.jpeg", new MyHttpHandler2());
-//        server.createContext("/Cat.jpeg", new MyHttpHandler2());
-        server.createContext("/files/", new PictureHttpHandler());
-        server.createContext("/personal-code", new PersonalCodeHttpHandler());
-        server.createContext("/personal-code/generator", new PersonalCodeGeneratorHttpHandler());
+        server.createContext("/pictures/", new PictureHttpHandler());
+        server.createContext("/main", new PersonalCodeHttpHandler());
+        server.createContext("/personal-code-generator", new PersonalCodeGeneratorHttpHandler());
         server.setExecutor(null);
         server.start();
     }
 
-    private class MyHttpHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange httpExchange) throws IOException {
+//    private class MyHttpHandler implements HttpHandler {
+//        @Override
+//        public void handle(HttpExchange httpExchange) throws IOException {
+//
+//            String requestParamValue=null;
+//            if("GET".equals(httpExchange.getRequestMethod())) {
+//                requestParamValue = handleGetRequest(httpExchange);
+//            }
+//            else if("POST".equals(httpExchange.getRequestMethod())) {
+////                requestParamValue = handlePostRequest(httpExchange);
+//            }
+//            handleResponse(httpExchange,requestParamValue);
+//        }
+//        private String handleGetRequest(HttpExchange httpExchange) {
+//            return httpExchange.
+//                    getRequestURI()
+//                    .toString()
+//                    .split("\\?")[1]
+//                    .split("=")[1];
+//        }
+//        private void handleResponse(HttpExchange httpExchange, String requestParamValue)  throws  IOException {
+//            OutputStream outputStream = httpExchange.getResponseBody();
+//            StringBuilder htmlBuilder = new StringBuilder();
+//            htmlBuilder.append("<html>").
+//                    append("<body>").
+//                    append("<h1>").
+//                    append("Hello ")
+//                    .append(requestParamValue)
+//                    .append("</h1>")
+//                    .append("</body>")
+//                    .append("</html>");
+//
+//            String htmlResponse = htmlBuilder.toString();
+//            httpExchange.sendResponseHeaders(200, htmlResponse.length());
+//            outputStream.write(htmlResponse.getBytes());
+//            outputStream.flush();
+//            outputStream.close();
+//        }
+//    }
 
-            String requestParamValue=null;
-            if("GET".equals(httpExchange.getRequestMethod())) {
-                requestParamValue = handleGetRequest(httpExchange);
-            }
-            else if("POST".equals(httpExchange.getRequestMethod())) {
-//                requestParamValue = handlePostRequest(httpExchange);
-            }
-            handleResponse(httpExchange,requestParamValue);
-        }
-        private String handleGetRequest(HttpExchange httpExchange) {
-            return httpExchange.
-                    getRequestURI()
-                    .toString()
-                    .split("\\?")[1]
-                    .split("=")[1];
-        }
-        private void handleResponse(HttpExchange httpExchange, String requestParamValue)  throws  IOException {
-            OutputStream outputStream = httpExchange.getResponseBody();
-            StringBuilder htmlBuilder = new StringBuilder();
-            htmlBuilder.append("<html>").
-                    append("<body>").
-                    append("<h1>").
-                    append("Hello ")
-                    .append(requestParamValue)
-                    .append("</h1>")
-                    .append("</body>")
-                    .append("</html>");
-
-            String htmlResponse = htmlBuilder.toString();
-            httpExchange.sendResponseHeaders(200, htmlResponse.length());
-            outputStream.write(htmlResponse.getBytes());
-            outputStream.flush();
-            outputStream.close();
-        }
-    }
-
-    private class PictureHttpHandler implements HttpHandler {
+    private static class PictureHttpHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String response = "";
@@ -81,14 +75,12 @@ class Server {
             }
             handleResponse(exchange, response);
         }
-
         private String handleGetRequest(HttpExchange exchange) throws IOException {
                 return exchange.
                         getRequestURI()
                         .toString()
                         .substring(1);
         }
-
         private void handleResponse(HttpExchange exchange, String response) throws IOException {
             OutputStream outputStream = exchange.getResponseBody();
                 InputStream picIn = new FileInputStream(response);
@@ -102,8 +94,7 @@ class Server {
             }
         }
 
-
-    private class PersonalCodeHttpHandler implements HttpHandler {
+    private static class PersonalCodeHttpHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String response = "";
@@ -112,15 +103,8 @@ class Server {
             }
             handleResponse(exchange, response);
         }
-
         private String handleGetRequest(HttpExchange exchange) throws IOException {
-            // mis siis ku tuleb mitu & ???  kasitle requesti teistmoodi!!!
-            if (exchange.getRequestURI().toString().contains("&")) {
-                String[] strings = exchange.getRequestURI().toString().split("&");
-                String gender = strings[0].split("=")[1];
-                String birthday = strings[1].split("=")[1];
-                return gender + "&" + birthday;
-            } else if (exchange.getRequestURI().toString().contains("=")) {
+                if (exchange.getRequestURI().toString().contains("personalcode")) {
                 return exchange.
                         getRequestURI()
                         .toString()
@@ -132,12 +116,10 @@ class Server {
                     .toString()
                     .substring(1);
         }
-
         private void handleResponse(HttpExchange exchange, String response) throws IOException {
             OutputStream outputStream = exchange.getResponseBody();
-
-            if (response.equals("personal-code")) {
-                FileInputStream in = new FileInputStream("html_files/index.html");
+            if (response.equals("main")) {
+                FileInputStream in = new FileInputStream("html_files/"+ response + ".html");
                 byte[] bytes = in.readAllBytes();
                 in.close();
                 exchange.getResponseHeaders().add("Content-type", "text/html");
@@ -145,13 +127,15 @@ class Server {
                 outputStream.write(bytes);
                 outputStream.close();
             } else {
-
-
+                controlPersonalCode(exchange, response, outputStream);
+            }
+        }
+        private void controlPersonalCode(HttpExchange exchange, String response, OutputStream outputStream) throws IOException {
             boolean validPersonalCode = new PersonalCodeService(new EstonianPersonalCode(response)).isValidPersonalCode();
-            String isValid = null;
+            String isValid = "";
             if (validPersonalCode) {
                 isValid = " is valid";
-            } else if (!validPersonalCode) {
+            } else {
                 isValid = " is not valid";
             }
             StringBuilder htmlBuilder = new StringBuilder();
@@ -167,77 +151,75 @@ class Server {
             outputStream.write(htmlResponse.getBytes());
             outputStream.flush();
             outputStream.close();
-
-            }
         }
-
     }
-    private class PersonalCodeGeneratorHttpHandler implements HttpHandler {
+
+    private static class PersonalCodeGeneratorHttpHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String response = "";
             if("GET".equals(exchange.getRequestMethod())) {
-                response = handleGetRequest(exchange);
-            }
+                response = handleGetRequest(exchange);}
             handleResponse(exchange, response);
         }
-
         private String handleGetRequest(HttpExchange exchange) throws IOException {
-            // mis siis ku tuleb mitu & ???  kasitle requesti teistmoodi!!!
-            if (exchange.getRequestURI().toString().contains("&")) {
+            String gender = "";
+            String birthday = "";
+            if (exchange.getRequestURI().toString().contains("dateofbirth")
+                    & exchange.getRequestURI().toString().contains("gender")) {
                 String[] strings = exchange.getRequestURI().toString().split("&");
-                String gender = strings[0].split("=")[1];
-                String birthday = strings[1].split("=")[1];
-                return gender + "&" + birthday;
-            }
-            else if (exchange.getRequestURI().toString().contains("=")) {
-                return  exchange.
-                        getRequestURI()
-                        .toString()
-                        .split("\\?")[1]
-                        .split("=")[1];
-            }
+                for (String string : strings) {
+                    if (string.contains("gender")) {
+                        gender = string.split("=")[1];
+                    } else if (string.contains("dateofbirth")) {
+                        birthday = string.split("=")[1];
+                    }}
+                return gender + "&" + birthday;}
             return exchange.
                     getRequestURI()
                     .toString()
                     .substring(1);
         }
-
         private void handleResponse(HttpExchange exchange, String response) throws IOException {
             OutputStream outputStream = exchange.getResponseBody();
-
             if (response.contains("male")) {
-                String[] strings = response.split("&");
-                String personalCode = new PersonalCodeService(new EstonianPersonalCodeGenerator(new NewInfoRequest(strings[1], strings[0]))).generatePersonalCode();
-                StringBuilder htmlBuilder = new StringBuilder();
-                htmlBuilder.append("<html>").
-                        append("<body>").
-                        append("<h1>").
-                        append("Generated personal code is " + personalCode)
-                        .append("</h1>")
-                        .append("</body>")
-                        .append("</html>");
-                String htmlResponse = htmlBuilder.toString();
-                exchange.sendResponseHeaders(200, htmlResponse.length());
-                outputStream.write(htmlResponse.getBytes());
-                outputStream.flush();
-                outputStream.close();
-            }
-            else
-
-        {
-                FileInputStream in = new FileInputStream("html_files/code-generator.html");
+                generatePersonalCode(exchange, response, outputStream);
+            } else {
+                FileInputStream in = new FileInputStream("html_files/" + response + ".html");
                 byte[] bytes = in.readAllBytes();
                 in.close();
                 exchange.getResponseHeaders().add("Content-type", "text/html");
                 exchange.sendResponseHeaders(200, bytes.length);
                 outputStream.write(bytes);
                 outputStream.close();
-            }
-            }
+            }}
 
+        private void generatePersonalCode(HttpExchange exchange, String response, OutputStream outputStream) throws IOException {
+            String gender = "";
+            String birthdate = "";
+            String[] strings = response.split("&");
+            for (String string : strings) {
+                if (string.contains("male")) {
+                    gender = string;
+                } else {
+                    birthdate = string;
+                }}
+            String personalCode = new PersonalCodeService(new EstonianPersonalCodeGenerator(new NewInfoRequest(birthdate, gender))).generatePersonalCode();
+            StringBuilder htmlBuilder = new StringBuilder();
+            htmlBuilder.append("<html>").
+                    append("<body>").
+                    append("<h1>").
+                    append("Generated personal code is " + personalCode)
+                    .append("</h1>")
+                    .append("</body>")
+                    .append("</html>");
+            String htmlResponse = htmlBuilder.toString();
+            exchange.sendResponseHeaders(200, htmlResponse.length());
+            outputStream.write(htmlResponse.getBytes());
+            outputStream.flush();
+            outputStream.close();
         }
-
+    }
     }
 
 
