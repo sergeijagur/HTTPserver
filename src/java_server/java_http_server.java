@@ -8,9 +8,12 @@ import personalCode.html.NewInfoRequest;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.stream.Stream;
 
 public class java_http_server {
 
@@ -34,25 +37,61 @@ public class java_http_server {
         String path = s[1];
         System.out.println(firstLine);
         String line = bf.readLine();
-        while (!line.isEmpty()) {
-            System.out.println(line);
-            line= bf.readLine();
-            if (line.isEmpty()) {
-                break;
-            }
+        if (method.equals("GET") & (path.contains("=") || path.contains("&"))) {
+            while (!line.isEmpty()) {
+                System.out.println(line);
+                line= bf.readLine();
+                if (line.isEmpty()) {
+                    break;
+                }}
+            handleRequestURI(path, client);
+        } if (method.equals("POST")) {
+            int contentLength = 0;
+            while (!line.isEmpty()) {
+                System.out.println(line);
+                line= bf.readLine();
+                if (line.startsWith("Content-Length:")) {
+                    String cl = line.substring("Content-Length:".length()).trim();
+                    contentLength = Integer.parseInt(cl);
+                } else if (line.isEmpty()) {
+                    break;
+                }
+
+        }
+            char[] buf = new char[contentLength];
+            bf.read(buf);
+            String requestBody = new String(buf);
+            handleRequestBody(requestBody, client);
         }
 
         Path filePath = getFilePath(path);
-        if (method.equals("GET") & (path.contains("=") || path.contains("&"))) {
-            handleRequestURI(path, client);
-        } else
-            if (Files.exists(filePath)) {
+        if (Files.exists(filePath)) {
             String contentType = guessContentType(filePath);
             handleResponse(client, "200 OK", contentType, Files.readAllBytes(filePath));
         } else {
             byte[] notFoundContent = "<h1>URL not found</h1>".getBytes();
             handleResponse(client, "404 Not Found", "text/html", notFoundContent);
         }
+    }
+
+    private static void handleRequestBody(String requestBody, Socket client) throws IOException {
+        StringBuilder htmlBuilder = new StringBuilder();
+        htmlBuilder.append("<html>").
+                append("<body>").
+                append("<h1>").
+                append("Request body is " + requestBody)
+                .append("</h1>")
+                .append("</body>")
+                .append("</html>");
+        String htmlResponse = htmlBuilder.toString();
+        OutputStream out = client.getOutputStream();
+        out.write(("HTTP/1.1 200 OK \r\n" ).getBytes());
+//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
+        out.write("\r\n".getBytes());
+        out.write(htmlResponse.getBytes());
+        out.write("\r\n\r\n".getBytes());
+        out.flush();
+        client.close();
     }
 
     private static void handleResponse(Socket client, String status, String contentType, byte[] content) throws IOException {
