@@ -1,37 +1,159 @@
 package java_server;
 
+import personalCode.EstonianPersonalCode;
+import personalCode.PersonalCodeService;
+import personalCode.html.EstonianPersonalCodeGenerator;
+import personalCode.html.NewInfoRequest;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class java_http_server {
 
     public static void main(String[] args) throws IOException {
-        ServerSocket server = new ServerSocket(8080);
-        System.out.println("Listening for connection on port 8080");
+        int port = 8080;
+        ServerSocket server = new ServerSocket(port);
+        System.out.println("Listening for connection on port " + port);
         while (true) {
-            Socket client = server.accept();
-            InputStreamReader is = new InputStreamReader(client.getInputStream());
-            BufferedReader bf = new BufferedReader(is);
-            String line = bf.readLine();
-            while (!line.isEmpty()) {
-                System.out.println(line);
-                line= bf.readLine();
+            try (Socket client = server.accept()) {
+                handleRequest(client);
             }
-//            try (Socket socket = server.accept()) {
-//                Date today = new Date();
-//                String httpResponse = "HTTP/1.1 200 OK\r\n\r\n" + today + "\rHello world";
-            client.getOutputStream().write("HTTP/1.1 200 OK\r\n\r\n".getBytes());
-            FileInputStream in = new FileInputStream("html_files/main.html");
-            client.getOutputStream().write(in.readAllBytes());
-            in.close();
+        }
+    }
 
-
+    private static void handleRequest(Socket client) throws IOException {
+        InputStreamReader is = new InputStreamReader(client.getInputStream());
+        BufferedReader bf = new BufferedReader(is);
+        String firstLine = bf.readLine();
+        String[] s = firstLine.split(" ");
+        String method = s[0];
+        String path = s[1];
+        System.out.println(firstLine);
+        String line = bf.readLine();
+        while (!line.isEmpty()) {
+            System.out.println(line);
+            line= bf.readLine();
+            if (line.isEmpty()) {
+                break;
+            }
         }
 
-
-//        }
+        Path filePath = getFilePath(path);
+        if (method.equals("GET") & (path.contains("=") || path.contains("&"))) {
+            handleRequestURI(path, client);
+        } else
+            if (Files.exists(filePath)) {
+            String contentType = guessContentType(filePath);
+            handleResponse(client, "200 OK", contentType, Files.readAllBytes(filePath));
+        } else {
+            byte[] notFoundContent = "<h1>URL not found</h1>".getBytes();
+            handleResponse(client, "404 Not Found", "text/html", notFoundContent);
+        }
     }
+
+    private static void handleResponse(Socket client, String status, String contentType, byte[] content) throws IOException {
+        OutputStream out = client.getOutputStream();
+        out.write(("HTTP/1.1 \r\n" + status).getBytes());
+        out.write(("ContentType: " + contentType + "\r\n").getBytes());
+        out.write("\r\n".getBytes());
+        out.write(content);
+        out.write("\r\n\r\n".getBytes());
+        out.flush();
+        client.close();
+    }
+
+    private static void handleRequestURI(String path, Socket client) throws IOException {
+        String response = "";
+        if (path.contains("personalcode")) {
+            response = path.split("\\?")[1].split("=")[1];
+            controlPersonalCode(response, client);
+        } else if (path.contains("dateofbirth") & path.contains("gender")) {
+            String[] strings = path.split("&");
+            String gender = "";
+            String birthdate = "";
+            for (String string : strings) {
+                if (string.contains("gender")) {
+                    gender = string.split("=")[1];
+                } else if (string.contains("dateofbirth")) {
+                    birthdate = string.split("=")[1];
+                }
+                response = gender + "&" + birthdate;
+            }
+            generatePersonalCode(response, client);
+        }
+    }
+
+    private static void generatePersonalCode(String response, Socket client) throws IOException {
+        String gender = "";
+        String birthdate = "";
+        String[] strings = response.split("&");
+        for (String string : strings) {
+            if (string.contains("male")) {
+                gender = string;
+            } else {
+                birthdate = string;
+            }}
+        String personalCode = new PersonalCodeService(new EstonianPersonalCodeGenerator(new NewInfoRequest(birthdate, gender))).generatePersonalCode();
+        StringBuilder htmlBuilder = new StringBuilder();
+        htmlBuilder.append("<html>").
+                append("<body>").
+                append("<h1>").
+                append("Generated personal code is " + personalCode)
+                .append("</h1>")
+                .append("</body>")
+                .append("</html>");
+        String htmlResponse = htmlBuilder.toString();
+        OutputStream out = client.getOutputStream();
+        out.write(("HTTP/1.1 200 OK \r\n" ).getBytes());
+//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
+        out.write("\r\n".getBytes());
+        out.write(htmlResponse.getBytes());
+        out.write("\r\n\r\n".getBytes());
+        out.flush();
+        client.close();
+    }
+
+    private static void controlPersonalCode(String response, Socket client) throws IOException {
+        boolean validPersonalCode = new PersonalCodeService(new EstonianPersonalCode(response)).isValidPersonalCode();
+        String isValid = "";
+        if (validPersonalCode) {
+            isValid = " is valid";
+        } else {
+            isValid = " is not valid";
+        }
+        StringBuilder htmlBuilder = new StringBuilder();
+        htmlBuilder.append("<html>").
+                append("<body>").
+                append("<h1>").
+                append("Personal code " + response + isValid)
+                .append("</h1>")
+                .append("</body>")
+                .append("</html>");
+        String htmlResponse = htmlBuilder.toString();
+        OutputStream out = client.getOutputStream();
+        out.write(("HTTP/1.1 200 OK \r\n" ).getBytes());
+//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
+        out.write("\r\n".getBytes());
+        out.write(htmlResponse.getBytes());
+        out.write("\r\n\r\n".getBytes());
+        out.flush();
+        client.close();
+    }
+    private static Path getFilePath(String path) {
+        if ("/".equals(path)) {
+            path = "/main.html";
+        }
+        if ("/favicon.ico".equals(path)) {
+            path = "/main.html";
+        }
+        return Paths.get("html_files", path);
+    }
+    private static String guessContentType(Path filePath) throws IOException {
+        return Files.probeContentType(filePath);
+    }
+
 }
