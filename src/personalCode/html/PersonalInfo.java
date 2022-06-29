@@ -7,6 +7,7 @@ public class PersonalInfo {
     String firstName;
     String lastName;
     String dateOfBirth;
+    String personalCode;
 
     public String getFirstName() {
         return firstName;
@@ -47,5 +48,5 @@ public class PersonalInfo {
         this.personalCode = personalCode;
     }
 
-    String personalCode;
+
 }

@@ -4,6 +4,7 @@ import personalCode.EstonianPersonalCode;
 import personalCode.PersonalCodeService;
 import personalCode.html.EstonianPersonalCodeGenerator;
 import personalCode.html.NewInfoRequest;
+import personalCode.html.PersonalInfo;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -35,54 +36,95 @@ public class java_http_server {
         System.out.println(firstLine);
         String line = bf.readLine();
         if (method.equals("GET") & (path.contains("=") || path.contains("&"))) {
-            while (!line.isEmpty()) {
-                System.out.println(line);
-                line= bf.readLine();
-                if (line.isEmpty()) {
-                    break;
-                }}
-            handleRequestURI(path, client);
-        }
-       else if (method.equals("POST")) {
-            int contentLength = 0;
-            while (!line.isEmpty()) {
-                System.out.println(line);
-                line= bf.readLine();
-                if (line.startsWith("Content-Length:")) {
-                    String cl = line.substring("Content-Length:".length()).trim();
-                    contentLength = Integer.parseInt(cl);
-                } else if (line.isEmpty()) {
-                    break;
-                }
-        }
-            char[] buf = new char[contentLength];
-            bf.read(buf);
-            String requestBody = new String(buf);
-            handleRequestBody(requestBody, client);
+            handleGetWithQueryParameters(client, bf, path, line);
+        } else if (method.equals("POST")) {
+            handlePostMethod(client, bf, line);
         } else {
+            printRequest(line, bf);
+            controlFilesByPath(client, path);
+        }
+    }
+
+    private static void handleGetWithQueryParameters(Socket client, BufferedReader bf, String path, String line) throws IOException {
+        printRequest(line, bf);
+        handleRequestURIWithParameters(path, client);
+    }
+
+    private static void handlePostMethod(Socket client, BufferedReader bf, String line) throws IOException {
+        int contentLength = 0;
+        while (!line.isEmpty()) {
+            System.out.println(line);
+            line = bf.readLine();
+            if (line.startsWith("Content-Length:")) {
+                String cl = line.substring("Content-Length:".length()).trim();
+                contentLength = Integer.parseInt(cl);
+            } else if (line.isEmpty()) {
+                break;
+            }
+        }
+        char[] buf = new char[contentLength];
+        bf.read(buf);
+        String requestBody = new String(buf);
+        handleRequestBody(requestBody, client);
+    }
+
+    private static void controlFilesByPath(Socket client, String path) throws IOException {
         Path filePath = getFilePath(path);
         if (Files.exists(filePath)) {
             String contentType = guessContentType(filePath);
-            handleResponse(client, "200 OK", contentType, Files.readAllBytes(filePath));
+            handleResponseWithFile(client, "200 OK", contentType, Files.readAllBytes(filePath));
         } else {
             byte[] notFoundContent = "<h1>URL not found</h1>".getBytes();
-            handleResponse(client, "404 Not Found", "text/html", notFoundContent);
+            handleResponseWithFile(client, "404 Not Found", "text/html", notFoundContent);
         }
     }
+
+    private static void printRequest(String line, BufferedReader bf) throws IOException {
+        while (!line.isEmpty()) {
+            System.out.println(line);
+            line = bf.readLine();
+            if (line.isEmpty()) {
+                break;
+            }
+        }
     }
 
     private static void handleRequestBody(String requestBody, Socket client) throws IOException {
+        String[] split = requestBody.split("&");
+        PersonalInfo person = new PersonalInfo();
+        for (String s : split) {
+            if (s.contains("firstName")) {
+                person.setFirstName(s.split("=")[1]);
+            } else if (s.contains("lastName")) {
+                person.setLastName(s.split("=")[1]);
+            } else if (s.contains("birthDay")) {
+                person.setDateOfBirth(s.split("=")[1]);
+            } else if (s.contains("pk")) {
+                person.setPersonalCode(s.split("=")[1]);
+            }
+        }
+        handlePostMethodResponse(client, person);
+    }
+
+    private static void handlePostMethodResponse(Socket client, PersonalInfo person) throws IOException {
+        String p = person.getFirstName() + " " + person.getLastName() + "," + person.getPersonalCode() + "," + person.getDateOfBirth() + "\n";
+        FileInputStream read = new FileInputStream("inimesed.txt");
+        byte[] bytes = read.readAllBytes();
+        OutputStream fileSave = new FileOutputStream("inimesed.txt");
+        fileSave.write(bytes);
+        fileSave.write(p.getBytes());
+        fileSave.close();
         StringBuilder htmlBuilder = new StringBuilder();
         htmlBuilder.append("<html>").
                 append("<body>").
                 append("<h1>").
-                append("Request body is " + requestBody)
+                append("New person " + p + "is added to list")
                 .append("</h1>")
                 .append("</body>")
                 .append("</html>");
         String htmlResponse = htmlBuilder.toString();
         OutputStream out = client.getOutputStream();
-        out.write(("HTTP/1.1 200 OK \r\n" ).getBytes());
+        out.write(("HTTP/1.1 200 OK \r\n").getBytes());
 //        out.write(("ContentType: " + contentType + "\r\n").getBytes());
         out.write("\r\n".getBytes());
         out.write(htmlResponse.getBytes());
@@ -91,7 +133,7 @@ public class java_http_server {
         client.close();
     }
 
-    private static void handleResponse(Socket client, String status, String contentType, byte[] content) throws IOException {
+    private static void handleResponseWithFile(Socket client, String status, String contentType, byte[] content) throws IOException {
         OutputStream out = client.getOutputStream();
         out.write(("HTTP/1.1 \r\n" + status).getBytes());
         out.write(("ContentType: " + contentType + "\r\n").getBytes());
@@ -102,7 +144,7 @@ public class java_http_server {
         client.close();
     }
 
-    private static void handleRequestURI(String path, Socket client) throws IOException {
+    private static void handleRequestURIWithParameters(String path, Socket client) throws IOException {
         String response = "";
         if (path.contains("personalcode")) {
             response = path.split("\\?")[1].split("=")[1];
@@ -132,8 +174,13 @@ public class java_http_server {
                 gender = string;
             } else {
                 birthdate = string;
-            }}
+            }
+        }
         String personalCode = new PersonalCodeService(new EstonianPersonalCodeGenerator(new NewInfoRequest(birthdate, gender))).generatePersonalCode();
+        handleResponseWithGeneratedPersonalCode(client, personalCode);
+    }
+
+    private static void handleResponseWithGeneratedPersonalCode(Socket client, String personalCode) throws IOException {
         StringBuilder htmlBuilder = new StringBuilder();
         htmlBuilder.append("<html>").
                 append("<body>").
@@ -144,7 +191,7 @@ public class java_http_server {
                 .append("</html>");
         String htmlResponse = htmlBuilder.toString();
         OutputStream out = client.getOutputStream();
-        out.write(("HTTP/1.1 200 OK \r\n" ).getBytes());
+        out.write(("HTTP/1.1 200 OK \r\n").getBytes());
 //        out.write(("ContentType: " + contentType + "\r\n").getBytes());
         out.write("\r\n".getBytes());
         out.write(htmlResponse.getBytes());
@@ -161,6 +208,10 @@ public class java_http_server {
         } else {
             isValid = " is not valid";
         }
+        handleResponseForPersonalCodeController(response, client, isValid);
+    }
+
+    private static void handleResponseForPersonalCodeController(String response, Socket client, String isValid) throws IOException {
         StringBuilder htmlBuilder = new StringBuilder();
         htmlBuilder.append("<html>").
                 append("<body>").
@@ -171,7 +222,7 @@ public class java_http_server {
                 .append("</html>");
         String htmlResponse = htmlBuilder.toString();
         OutputStream out = client.getOutputStream();
-        out.write(("HTTP/1.1 200 OK \r\n" ).getBytes());
+        out.write(("HTTP/1.1 200 OK \r\n").getBytes());
 //        out.write(("ContentType: " + contentType + "\r\n").getBytes());
         out.write("\r\n".getBytes());
         out.write(htmlResponse.getBytes());
@@ -179,15 +230,17 @@ public class java_http_server {
         out.flush();
         client.close();
     }
+
     private static Path getFilePath(String path) {
         if ("/".equals(path)) {
             path = "/main.html";
         }
-        if ("/favicon.ico".equals(path)) {
-            path = "/main.html";
-        }
+//        if ("/favicon.ico".equals(path)) {
+//            path = "/main.html";
+//        }
         return Paths.get("html_files", path);
     }
+
     private static String guessContentType(Path filePath) throws IOException {
         return Files.probeContentType(filePath);
     }
