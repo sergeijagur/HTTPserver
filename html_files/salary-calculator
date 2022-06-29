@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Personal code generator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../pictures/favicon.ico">
+
+</head>
+<body>
+
+<h1>
+    Calculate all taxes and salary
+</h1>
+
+<form action="" method="POST">
+    <la>SALARY TYPE</la>
+    <br>
+    <br>
+    <div data-name = "check">
+    <input type="radio" name="salary-type" id="net" value="net" required>
+    <label for="net">Net salary</label><br>
+    <input type="radio" name="salary-type" id="gross" value="gross" required>
+    <label for="gross">Gross salary</label><br>
+        <input type="radio" name="salary-type" id="total-expense" value="total-expense" required>
+    <label for="total-expense">Total Expense</label>
+    </div>
+    <br>
+    <input type="number" id="salary" name="salary"  placeholder="amount" required>
+    <br>
+    <br>
+    <button type="submit" id="submit">Calculate</button>
+    <br>
+    <br>
+</form>
+
+
+
+
+</body>
+</html>

@@ -5,8 +5,10 @@ import personalCode.PersonalCodeService;
 import personalCode.html.EstonianPersonalCodeGenerator;
 import personalCode.html.NewInfoRequest;
 import personalCode.html.PersonalInfo;
+import salary_calculator.*;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -90,20 +92,83 @@ public class java_http_server {
     }
 
     private static void handleRequestBody(String requestBody, Socket client) throws IOException {
-        String[] split = requestBody.split("&");
-        PersonalInfo person = new PersonalInfo();
-        for (String s : split) {
-            if (s.contains("firstName")) {
-                person.setFirstName(s.split("=")[1]);
-            } else if (s.contains("lastName")) {
-                person.setLastName(s.split("=")[1]);
-            } else if (s.contains("birthDay")) {
-                person.setDateOfBirth(s.split("=")[1]);
-            } else if (s.contains("pk")) {
-                person.setPersonalCode(s.split("=")[1]);
+        if (requestBody.contains("salary")) {
+            String[] split = requestBody.split("&");
+            String salaryType = "";
+            String salary = "";
+            for (String s : split) {
+                if (s.contains("salary-type")) {
+                    salaryType = (s.split("=")[1]);
+                } else if (s.contains("salary")) {
+                    salary = (s.split("=")[1]);
+                }
+                }
+            calculateSalaryAndTaxes(salaryType, salary, client);
+
+                } else if (requestBody.contains("birthDay") & requestBody.contains("pk")) {
+            String[] split = requestBody.split("&");
+            PersonalInfo person = new PersonalInfo();
+            for (String s : split) {
+                if (s.contains("firstName")) {
+                    person.setFirstName(s.split("=")[1]);
+                } else if (s.contains("lastName")) {
+                    person.setLastName(s.split("=")[1]);
+                } else if (s.contains("birthDay")) {
+                    person.setDateOfBirth(s.split("=")[1]);
+                } else if (s.contains("pk")) {
+                    person.setPersonalCode(s.split("=")[1]);
+                }
+            }
+            handlePostMethodResponse(client, person);
+    }
+    }
+
+    private static void calculateSalaryAndTaxes(String salaryType, String salary, Socket client) throws IOException {
+        SalaryInformationResponse response = new SalaryInformationResponse();
+        System.out.println(salary);
+        System.out.println(salaryType);
+        switch (salaryType) {
+            case "gross": {
+                response = new GrossSalary(new BigDecimal(salary)).getSalaryInformation();
+                break;
+            }
+            case "net": {
+                response = new NetSalary(new BigDecimal(salary)).getSalaryInformation();
+                break;
+            }
+            case "total-expense": {
+                response = new TotalExpense(new BigDecimal(salary)).getSalaryInformation();
+                break;
             }
         }
-        handlePostMethodResponse(client, person);
+        handleSalaryCalculatorResponse(response, client);
+    }
+
+    private static void handleSalaryCalculatorResponse(SalaryInformationResponse response, Socket client) throws IOException {
+        StringBuilder htmlBuilder = new StringBuilder();
+        htmlBuilder.append("<html>").
+                append("<body>").
+                append("<h1>").
+                append("<br>Total Cost for Employer (Wage Fund): " + response.getEmployerExpense() + "<br>" +
+                        "Social Tax: " + response.getSocialTax() + "<br>" +
+                        "Unemployment insurance (employer): " + response.getUnemploymentInsuranceByEmployer() + "<br>" +
+                        "Gross Salary/Wage: " + response.getGrossSalary() + "<br>" +
+                        "Funded pension (II pillar): " + response.getPension() + "<br>" +
+                        "Unemployment insurance (employee): " + response.getUnemploymentInsuranceByEmployee() + "<br>" +
+                        "Income Tax: " + response.getIncomeTax() + "<br>" +
+                        "Net Salary/Wage: " + response.getNetSalary() + "<br>")
+                .append("</h1>")
+                .append("</body>")
+                .append("</html>");
+        String htmlResponse = htmlBuilder.toString();
+        OutputStream out = client.getOutputStream();
+        out.write(("HTTP/1.1 200 OK \r\n").getBytes());
+//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
+        out.write("\r\n".getBytes());
+        out.write(htmlResponse.getBytes());
+        out.write("\r\n\r\n".getBytes());
+        out.flush();
+        client.close();
     }
 
     private static void handlePostMethodResponse(Socket client, PersonalInfo person) throws IOException {
