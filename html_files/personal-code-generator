@@ -14,7 +14,7 @@
     Generate new personal code
 </h1>
 
-<form action="" method="GET">
+<form action="generated-code" method="GET">
     <la>GENDER</la>
 
     <br>

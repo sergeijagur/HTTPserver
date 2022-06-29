@@ -8,12 +8,9 @@ import personalCode.html.NewInfoRequest;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.stream.Stream;
 
 public class java_http_server {
 
@@ -45,7 +42,8 @@ public class java_http_server {
                     break;
                 }}
             handleRequestURI(path, client);
-        } if (method.equals("POST")) {
+        }
+       else if (method.equals("POST")) {
             int contentLength = 0;
             while (!line.isEmpty()) {
                 System.out.println(line);
@@ -56,14 +54,12 @@ public class java_http_server {
                 } else if (line.isEmpty()) {
                     break;
                 }
-
         }
             char[] buf = new char[contentLength];
             bf.read(buf);
             String requestBody = new String(buf);
             handleRequestBody(requestBody, client);
-        }
-
+        } else {
         Path filePath = getFilePath(path);
         if (Files.exists(filePath)) {
             String contentType = guessContentType(filePath);
@@ -72,6 +68,7 @@ public class java_http_server {
             byte[] notFoundContent = "<h1>URL not found</h1>".getBytes();
             handleResponse(client, "404 Not Found", "text/html", notFoundContent);
         }
+    }
     }
 
     private static void handleRequestBody(String requestBody, Socket client) throws IOException {
