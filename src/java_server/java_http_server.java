@@ -75,7 +75,7 @@ public class java_http_server {
         System.out.println(fn);
         String data = requestBody.split("\r\n")[4];
         byte[] bytes = data.getBytes(StandardCharsets.ISO_8859_1);
-        FileOutputStream file = new FileOutputStream(fn + ".txt");
+        FileOutputStream file = new FileOutputStream(fn);
         file.write(bytes);
         file.close();
         OutputStream out = client.getOutputStream();

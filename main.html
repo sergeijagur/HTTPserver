@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HTTP server exercise</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../pictures/favicon.ico">
+</head>
+<body>
+<br>
+<br>
+<button value="" onclick="window.location.href='../pictures/photo.jpeg'">Picture</button>
+<br>
+<br>
+<button value="" onclick="window.location.href='http://localhost:8080/personal-code-generator'">Personal code generator</button>
+<br>
+<br>
+<button value="" onclick="window.location.href='http://localhost:8080/salary-calculator'">Salary calculator</button>
+<br>
+<br>
+<h1>
+    PERSONAL CODE CONTROLLER
+</h1>
+
+<form action="" method="GET">
+    <input type="number" id="personalcode" name="personalcode" required  placeholder="isikukood" min="1000000000" max="99999999999">
+    <label for="personalcode">Personal Code</label>
+    <br>
+    <br>
+    <button type="submit" id="submit">Control personal code</button>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+</form>
+
+<form action="" method="POST">
+    <input type="text" name="firstName" id="firstName">
+    <lab for="firstName">First name</lab>
+    <br>
+    <br>
+    <input type="text" name="lastName" id="lastName">
+    <lab for="lastName">Last name</lab>
+    <br>
+    <br>
+    <input type="date" name="birthDay" id="birthDay">
+    <lab for="birthDay">Birthday</lab>
+    <br>
+    <br>
+    <input type="number" id="pk" name="pk" required  placeholder="isikukood" min="1000000000" max="99999999999">
+    <label for="pk">Personal Code</label>
+    <br>
+    <br>
+    <button type="submit" id="sbm">Send data</button>
+    <br>
+    <br>
+</form>
+
+<form method="POST" action="fileuploadservlet" enctype="multipart/form-data">
+    <input type="file" name="file" />
+    <input type="submit" value="Upload" />
+</form>
+
+
+</body>
+</html>
