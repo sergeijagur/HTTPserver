@@ -7,10 +7,15 @@ import personalCode.html.NewInfoRequest;
 import personalCode.html.PersonalInfo;
 import salary_calculator.*;
 
+import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageInputStream;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,7 +42,10 @@ public class java_http_server {
         String path = s[1];
         System.out.println(firstLine);
         String line = bf.readLine();
-        if (method.equals("GET") & (path.contains("=") || path.contains("&"))) {
+
+        if (path.contains("fileuploadservlet")) {
+            saveFile(client, bf, line);
+        } else if (method.equals("GET") & (path.contains("=") || path.contains("&"))) {
             handleGetWithQueryParameters(client, bf, path, line);
         } else if (method.equals("POST")) {
             handlePostMethod(client, bf, line);
@@ -45,6 +53,39 @@ public class java_http_server {
             printRequest(line, bf);
             controlFilesByPath(client, path);
         }
+    }
+
+    private static void saveFile(Socket client, BufferedReader bf, String line) throws IOException {
+        int contentLength = 0;
+        while (!line.isEmpty()) {
+            System.out.println(line);
+            line = bf.readLine();
+            if (line.startsWith("Content-Length:")) {
+                String cl = line.substring("Content-Length:".length()).trim();
+                contentLength = Integer.parseInt(cl);
+            } else if (line.isEmpty()) {
+                break;
+            }
+        }
+        char[] buf = new char[contentLength];
+        bf.read(buf);
+        String requestBody = new String(buf);
+        String fileName = requestBody.split("\r\n")[1].split(" ")[3].split("=")[1];
+        String fn = fileName.substring(1, fileName.length() - 1);
+        System.out.println(fn);
+        String data = requestBody.split("\r\n")[4];
+        byte[] bytes = data.getBytes(StandardCharsets.ISO_8859_1);
+        FileOutputStream file = new FileOutputStream(fn + ".txt");
+        file.write(bytes);
+        file.close();
+        OutputStream out = client.getOutputStream();
+        out.write(("HTTP/1.1 200 OK \r\n").getBytes());
+//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
+        out.write("\r\n".getBytes());
+        out.write("File is saved".getBytes());
+        out.write("\r\n\r\n".getBytes());
+        out.flush();
+        client.close();
     }
 
     private static void handleGetWithQueryParameters(Socket client, BufferedReader bf, String path, String line) throws IOException {
@@ -172,7 +213,7 @@ public class java_http_server {
     }
 
     private static void handlePostMethodResponse(Socket client, PersonalInfo person) throws IOException {
-        String p = person.getFirstName() + " " + person.getLastName() + "," + person.getPersonalCode() + "," + person.getDateOfBirth() + "\n";
+        String p = person.getFirstName() + " " + person.getLastName() + ", " + person.getPersonalCode() + ", " + person.getDateOfBirth() + "\n";
         FileInputStream read = new FileInputStream("inimesed.txt");
         byte[] bytes = read.readAllBytes();
         OutputStream fileSave = new FileOutputStream("inimesed.txt");
