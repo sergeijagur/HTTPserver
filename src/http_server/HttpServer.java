@@ -21,7 +21,7 @@ class Server {
     public Server() throws IOException {
         server.createContext("/pictures/", new PictureHttpHandler());
         server.createContext("/main", new PersonalCodeHttpHandler());
-        server.createContext("/personal-code-generator", new PersonalCodeGeneratorHttpHandler());
+        server.createContext("/personal-code-generator.html", new PersonalCodeGeneratorHttpHandler());
         server.createContext("/post", new PostHttpHandler());
         server.setExecutor(null);
         server.start();

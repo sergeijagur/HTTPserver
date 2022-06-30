@@ -7,10 +7,6 @@ import personalCode.html.NewInfoRequest;
 import personalCode.html.PersonalInfo;
 import salary_calculator.*;
 
-import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageInputStream;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigDecimal;
 import java.net.ServerSocket;
@@ -19,8 +15,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class java_http_server {
+public class JavaServer {
 
     public static void main(String[] args) throws IOException {
         int port = 8080;
@@ -37,21 +37,47 @@ public class java_http_server {
         InputStreamReader is = new InputStreamReader(client.getInputStream());
         BufferedReader bf = new BufferedReader(is);
         String firstLine = bf.readLine();
-        String[] s = firstLine.split(" ");
-        String method = s[0];
-        String path = s[1];
         System.out.println(firstLine);
+
+        String method = firstLine.split(" ")[0];
+        String wholePath = firstLine.split(" ")[1];
+        String path = "";
+        Map<String, String> paramsMap = new HashMap<>();
+        if (wholePath.contains("?") && wholePath.contains("=")) {
+            String params = wholePath.split("\\?")[1];
+            path = wholePath.split("\\?")[0];
+            String[] paramsArray = params.split("&");
+            for (String param : paramsArray) {
+                paramsMap.put(param.split("=")[0], param.split("=")[1]);
+            }
+        } else {
+            path = wholePath;
+            paramsMap = null;
+        }
         String line = bf.readLine();
+        List<Headers> headers = new ArrayList<>();
+        while (!line.isEmpty()) {
+            headers.add(new Headers(line.split(" ")[0], line.split(" ")[1]));
+            line = bf.readLine();
+            if (line.isEmpty()) {
+                break;
+            }
+        }
+        Request request = new Request(method, path, paramsMap, headers);
+//        System.out.println(request);
+
+
+
 
         if (path.contains("fileuploadservlet")) {
             saveFile(client, bf, line);
-        } else if (method.equals("GET") & (path.contains("=") || path.contains("&"))) {
-            handleGetWithQueryParameters(client, bf, path, line);
+        } else if (method.equals("GET")) {
+            handleGetWithQueryParameters(client, request);
         } else if (method.equals("POST")) {
             handlePostMethod(client, bf, line);
         } else {
             printRequest(line, bf);
-            controlFilesByPath(client, path);
+            controlFilesByPath(client, request.getPath());
         }
     }
 
@@ -88,9 +114,17 @@ public class java_http_server {
         client.close();
     }
 
-    private static void handleGetWithQueryParameters(Socket client, BufferedReader bf, String path, String line) throws IOException {
-        printRequest(line, bf);
-        handleRequestURIWithParameters(path, client);
+    private static void handleGetWithQueryParameters(Socket client, Request request) throws IOException {
+        handleRequestURIWithParameters(request, client);
+    }
+    private static void printRequest(String line, BufferedReader bf) throws IOException {
+        while (!line.isEmpty()) {
+            System.out.println(line);
+            line = bf.readLine();
+            if (line.isEmpty()) {
+                break;
+            }
+        }
     }
 
     private static void handlePostMethod(Socket client, BufferedReader bf, String line) throws IOException {
@@ -123,15 +157,7 @@ public class java_http_server {
         }
     }
 
-    private static void printRequest(String line, BufferedReader bf) throws IOException {
-        while (!line.isEmpty()) {
-            System.out.println(line);
-            line = bf.readLine();
-            if (line.isEmpty()) {
-                break;
-            }
-        }
-    }
+
 
     private static void handleRequestBody(String requestBody, Socket client) throws IOException {
         if (requestBody.contains("salary")) {
@@ -251,38 +277,56 @@ public class java_http_server {
         client.close();
     }
 
-    private static void handleRequestURIWithParameters(String path, Socket client) throws IOException {
-        String response = "";
-        if (path.contains("personalcode")) {
-            response = path.split("\\?")[1].split("=")[1];
-            controlPersonalCode(response, client);
-        } else if (path.contains("dateofbirth") & path.contains("gender")) {
-            String[] strings = path.split("&");
-            String gender = "";
-            String birthdate = "";
-            for (String string : strings) {
-                if (string.contains("gender")) {
-                    gender = string.split("=")[1];
-                } else if (string.contains("dateofbirth")) {
-                    birthdate = string.split("=")[1];
-                }
-                response = gender + "&" + birthdate;
-            }
-            generatePersonalCode(response, client);
+    private static void handleRequestURIWithParameters(Request request, Socket client) throws IOException {
+        if (request.getParams().isEmpty()) {
+            // parameetrite validatsioon
+            badRequestError(client);
+        } else if (request.getParams().containsKey("personalcode")) {
+            controlPersonalCode(request.getParams().get("personalcode"), client);
+        } else if (request.getParams().containsKey("dateofbirth") && request.getParams().containsKey("gender")) {
+            generatePersonalCode(request.getParams().get("dateofbirth"), request.getParams().get("gender"), client);
         }
+//        String response = "";
+//        if (path.contains("personalcode")) {
+//            response = path.split("\\?")[1].split("=")[1];
+//            controlPersonalCode(response, client);
+//        } else if (path.contains("dateofbirth") & path.contains("gender")) {
+//            String[] strings = path.split("&");
+//            String gender = "";
+//            String birthdate = "";
+//            for (String string : strings) {
+//                if (string.contains("gender")) {
+//                    gender = string.split("=")[1];
+//                } else if (string.contains("dateofbirth")) {
+//                    birthdate = string.split("=")[1];
+//                }
+//                response = gender + "&" + birthdate;
+//            }
+//            generatePersonalCode(response, client);
+//        }
     }
 
-    private static void generatePersonalCode(String response, Socket client) throws IOException {
-        String gender = "";
-        String birthdate = "";
-        String[] strings = response.split("&");
-        for (String string : strings) {
-            if (string.contains("male")) {
-                gender = string;
-            } else {
-                birthdate = string;
-            }
-        }
+    private static void badRequestError(Socket client) throws IOException {
+        StringBuilder htmlBuilder = new StringBuilder();
+        htmlBuilder.append("<html>").
+                append("<body>").
+                append("<h1>").
+                append("BAD REQUEST")
+                .append("</h1>")
+                .append("</body>")
+                .append("</html>");
+        String htmlResponse = htmlBuilder.toString();
+        OutputStream out = client.getOutputStream();
+        out.write(("HTTP/1.1 400 BAD REQUEST \r\n").getBytes());
+//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
+        out.write("\r\n".getBytes());
+        out.write(htmlResponse.getBytes());
+        out.write("\r\n\r\n".getBytes());
+        out.flush();
+        client.close();
+    }
+
+    private static void generatePersonalCode(String birthdate, String gender, Socket client) throws IOException {
         String personalCode = new PersonalCodeService(new EstonianPersonalCodeGenerator(new NewInfoRequest(birthdate, gender))).generatePersonalCode();
         handleResponseWithGeneratedPersonalCode(client, personalCode);
     }
