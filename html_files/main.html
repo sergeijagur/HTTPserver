@@ -11,17 +11,19 @@
 <br>
 <button value="" onclick="window.location.href='../pictures/photo.jpeg'">Picture</button>
 <br>
-<br>
+<h1>
+    PERSONAL CODE GENERATOR
+</h1>
 <button value="" onclick="window.location.href='http://localhost:8080/personal-code-generator'">Personal code generator</button>
 <br>
-<br>
+<h1>
+    SALARY CALCULATOR
+</h1>
 <button value="" onclick="window.location.href='http://localhost:8080/salary-calculator'">Salary calculator</button>
-<br>
 <br>
 <h1>
     PERSONAL CODE CONTROLLER
 </h1>
-
 <form action="" method="GET">
     <input type="number" id="personalcode" name="personalcode" required  placeholder="isikukood" min="1000000000" max="99999999999">
     <label for="personalcode">Personal Code</label>
@@ -29,13 +31,10 @@
     <br>
     <button type="submit" id="submit">Control personal code</button>
     <br>
-    <br>
-    <br>
-    <br>
-    <br>
-    <br>
 </form>
-
+<h1>
+    ADD PERSON TO LIST
+</h1>
 <form action="" method="POST">
     <input type="text" name="firstName" id="firstName">
     <lab for="firstName">First name</lab>
@@ -53,11 +52,12 @@
     <label for="pk">Personal Code</label>
     <br>
     <br>
-    <button type="submit" id="sbm">Send data</button>
-    <br>
+    <button type="submit" id="sbm">Add to list</button>
     <br>
 </form>
-
+<h1>
+    UPLOAD FILE
+</h1>
 <form method="POST" action="fileuploadservlet" enctype="multipart/form-data">
     <input type="file" name="file" />
     <input type="submit" value="Upload" />

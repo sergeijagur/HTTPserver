@@ -117,8 +117,9 @@ public class java_http_server {
             String contentType = guessContentType(filePath);
             handleResponseWithFile(client, "200 OK", contentType, Files.readAllBytes(filePath));
         } else {
-            byte[] notFoundContent = "<h1>URL not found</h1>".getBytes();
-            handleResponseWithFile(client, "404 Not Found", "text/html", notFoundContent);
+//            byte[] notFoundContent = "<h1>URL not found</h1>".getBytes();
+//            handleResponseWithFile(client, "404 Not Found", "text/html", notFoundContent);
+            handleResponseWithFile(client, "404 Not Found", "image/jpeg", Files.readAllBytes(Path.of("html_files/pictures/404.jpeg")));
         }
     }
 
