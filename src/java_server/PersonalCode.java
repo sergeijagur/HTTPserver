@@ -1,6 +1,41 @@
 package java_server;
+import personalCode.EstonianPersonalCode;
+import personalCode.PersonalCodeService;
+import personalCode.html.EstonianPersonalCodeGenerator;
+import personalCode.html.NewInfoRequest;
+import java.io.IOException;
+import java.net.Socket;
+
+import static java_server.JavaServer.getHtmlResponse;
+import static java_server.JavaServer.handleResponseToBrowser;
 
 public class PersonalCode {
 
+    protected static void generatePersonalCode(String birthdate, String gender, Socket client) throws IOException {
+        String personalCode = new PersonalCodeService(new EstonianPersonalCodeGenerator(new NewInfoRequest(birthdate, gender))).generatePersonalCode();
+        handleResponseWithGeneratedPersonalCode(client, personalCode);
+    }
 
+    private static void handleResponseWithGeneratedPersonalCode(Socket client, String personalCode) throws IOException {
+        String content = "Generated personal code is " + personalCode;
+        String htmlResponse = getHtmlResponse(content);
+        handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
+    }
+
+    protected static void controlPersonalCode(String response, Socket client) throws IOException {
+        boolean validPersonalCode = new PersonalCodeService(new EstonianPersonalCode(response)).isValidPersonalCode();
+        String isValid = "";
+        if (validPersonalCode) {
+            isValid = " is valid";
+        } else {
+            isValid = " is not valid";
+        }
+        handleResponseForPersonalCodeController(response, client, isValid);
+    }
+
+    private static void handleResponseForPersonalCodeController(String response, Socket client, String isValid) throws IOException {
+        String content = "Personal code " + response + isValid;
+        String htmlResponse = getHtmlResponse(content);
+        handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
+    }
 }
