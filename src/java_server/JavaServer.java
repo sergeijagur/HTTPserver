@@ -1,20 +1,13 @@
 package java_server;
 
-import api.personal_code.EstonianPersonalCode;
-import api.personal_code.PersonalCodeService;
-import api.salary_calculator.GrossSalary;
-import api.salary_calculator.NetSalary;
-import api.salary_calculator.SalaryInformationResponse;
-import api.salary_calculator.TotalExpense;
-import pk_html.EstonianPersonalCodeGenerator;
-import pk_html.NewInfoRequest;
-import pk_html.PersonalInfo;
+import java_server.service.FilesToServerService;
+import java_server.service.PersonalCodeControllerAndGeneratorService;
+import java_server.service.SalaryCalculatorService;
+import personal_code_custom.PersonalInfo;
 
 import java.io.*;
-import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,9 +25,7 @@ public class JavaServer {
         while (true) {
             try (Socket client = server.accept()) {
                 handleRequest(client);
-            }
-        }
-    }
+            }}}
 
     private static void handleRequest(Socket client) throws IOException {
         InputStreamReader is = new InputStreamReader(client.getInputStream());
@@ -99,7 +90,7 @@ public class JavaServer {
         bf.read(buf);
         String requestBodyString = new String(buf);
         if (request.getPath().equals("/fileuploadservlet")) {
-            saveFile(client, requestBodyString);
+            FilesToServerService.saveFile(client, requestBodyString);
         }
         String[] split = requestBodyString.split("&");
         Map<String, String> requestBody = new HashMap<>();
@@ -130,15 +121,15 @@ public class JavaServer {
             // parameetrite validatsioon
             badRequestError(client);
         } else if (request.getParams().containsKey("personalcode")) {
-            controlPersonalCode(request.getParams().get("personalcode"), client);
+            PersonalCodeControllerAndGeneratorService.controlPersonalCode(request.getParams().get("personalcode"), client);
         } else if (request.getParams().containsKey("dateofbirth") && request.getParams().containsKey("gender")) {
-            generatePersonalCode(request.getParams().get("dateofbirth"), request.getParams().get("gender"), client);
+            PersonalCodeControllerAndGeneratorService.generatePersonalCode(request.getParams().get("dateofbirth"), request.getParams().get("gender"), client);
         }
     }
 
     private static void handleRequestBody(Request request, Socket client) throws IOException {
         if (request.getRequestBody().containsKey("salary")) {
-            calculateSalaryAndTaxes(request, client);
+            SalaryCalculatorService.calculateSalaryAndTaxes(request, client);
         } else if (request.getRequestBody().containsKey("birthDay") & request.getRequestBody().containsKey("pk")) {
             PersonalInfo person = new PersonalInfo();
             person.setFirstName(request.getRequestBody().get("firstName"));
@@ -149,7 +140,7 @@ public class JavaServer {
         }
     }
 
-    private static String getHtmlResponse(String content) {
+    public static String getHtmlResponse(String content) {
         StringBuilder htmlBuilder = new StringBuilder();
         htmlBuilder.append("<html>").
                 append("<body>").
@@ -162,7 +153,7 @@ public class JavaServer {
         return htmlResponse;
     }
 
-    private static void handleResponseToBrowser(Socket client, String status, String contentType, byte[] content) throws IOException {
+    public static void handleResponseToBrowser(Socket client, String status, String contentType, byte[] content) throws IOException {
         OutputStream out = client.getOutputStream();
         out.write(("HTTP/1.1 \r\n" + status).getBytes());
         out.write(("ContentType: " + contentType + "\r\n").getBytes());
@@ -172,54 +163,6 @@ public class JavaServer {
         out.flush();
         client.close();
     }
-
-
-    private static void saveFile(Socket client, String requestBody) throws IOException {
-        String fileName = requestBody.split("\r\n")[1].split(" ")[3].split("=")[1];
-        String fn = fileName.substring(1, fileName.length() - 1);
-        System.out.println(fn);
-        String data = requestBody.split("\r\n")[4];
-        byte[] bytes = data.getBytes(StandardCharsets.ISO_8859_1);
-        FileOutputStream file = new FileOutputStream(fn);
-        file.write(bytes);
-        file.close();
-        handleResponseToBrowser(client, "200 OK", "text/html", "File is saved".getBytes());
-    }
-
-    private static void calculateSalaryAndTaxes(Request request, Socket client) throws IOException {
-        SalaryInformationResponse response = new SalaryInformationResponse();
-        String salaryType = request.getRequestBody().get("salary-type");
-        String salary = request.getRequestBody().get("salary");
-        switch (salaryType) {
-            case "gross": {
-                response = new GrossSalary(new BigDecimal(salary)).getSalaryInformation();
-                break;
-            }
-            case "net": {
-                response = new NetSalary(new BigDecimal(salary)).getSalaryInformation();
-                break;
-            }
-            case "total-expense": {
-                response = new TotalExpense(new BigDecimal(salary)).getSalaryInformation();
-                break;
-            }
-        }
-        handleSalaryCalculatorResponse(response, client);
-    }
-
-    private static void handleSalaryCalculatorResponse(SalaryInformationResponse response, Socket client) throws IOException {
-        String content = "<br>Total Cost for Employer (Wage Fund): " + response.getEmployerExpense() + "<br>" +
-                "Social Tax: " + response.getSocialTax() + "<br>" +
-                "Unemployment insurance (employer): " + response.getUnemploymentInsuranceByEmployer() + "<br>" +
-                "Gross Salary/Wage: " + response.getGrossSalary() + "<br>" +
-                "Funded pension (II pillar): " + response.getPension() + "<br>" +
-                "Unemployment insurance (employee): " + response.getUnemploymentInsuranceByEmployee() + "<br>" +
-                "Income Tax: " + response.getIncomeTax() + "<br>" +
-                "Net Salary/Wage: " + response.getNetSalary() + "<br>";
-        String htmlResponse = getHtmlResponse(content);
-        handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
-    }
-
 
     private static void addPersonalInfoToList(Socket client, PersonalInfo person) throws IOException {
         String p = person.getFirstName() + " " + person.getLastName() + ", " + person.getPersonalCode() + ", " + person.getDateOfBirth() + "\n";
@@ -234,34 +177,6 @@ public class JavaServer {
         handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
     }
 
-    private static void generatePersonalCode(String birthdate, String gender, Socket client) throws IOException {
-        String personalCode = new PersonalCodeService(new EstonianPersonalCodeGenerator(new NewInfoRequest(birthdate, gender))).generatePersonalCode();
-        handleResponseWithGeneratedPersonalCode(client, personalCode);
-    }
-
-    private static void handleResponseWithGeneratedPersonalCode(Socket client, String personalCode) throws IOException {
-        String content = "Generated personal code is " + personalCode;
-        String htmlResponse = getHtmlResponse(content);
-        handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
-    }
-
-    private static void controlPersonalCode(String response, Socket client) throws IOException {
-        boolean validPersonalCode = new PersonalCodeService(new EstonianPersonalCode(response)).isValidPersonalCode();
-        String isValid = "";
-        if (validPersonalCode) {
-            isValid = " is valid";
-        } else {
-            isValid = " is not valid";
-        }
-        handleResponseForPersonalCodeController(response, client, isValid);
-    }
-
-    private static void handleResponseForPersonalCodeController(String response, Socket client, String isValid) throws IOException {
-        String content = "Personal code " + response + isValid;
-        String htmlResponse = getHtmlResponse(content);
-        handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
-    }
-
     private static Path getFilePath(String path) {
         if ("/".equals(path)) {
             path = "/main.html";
@@ -272,5 +187,4 @@ public class JavaServer {
     private static String guessContentType(Path filePath) throws IOException {
         return Files.probeContentType(filePath);
     }
-
 }

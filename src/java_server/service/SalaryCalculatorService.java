@@ -1,8 +1,9 @@
-package java_server;
-import salary_calculator.GrossSalary;
-import salary_calculator.NetSalary;
-import salary_calculator.SalaryInformationResponse;
-import salary_calculator.TotalExpense;
+package java_server.service;
+import api.salary_calculator.GrossSalary;
+import api.salary_calculator.NetSalary;
+import api.salary_calculator.SalaryInformationResponse;
+import api.salary_calculator.TotalExpense;
+import java_server.Request;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.Socket;
@@ -10,9 +11,9 @@ import java.net.Socket;
 import static java_server.JavaServer.getHtmlResponse;
 import static java_server.JavaServer.handleResponseToBrowser;
 
-public class SalaryCalculator {
+public class SalaryCalculatorService {
 
-    protected static void calculateSalaryAndTaxes(Request request, Socket client) throws IOException {
+    public static void calculateSalaryAndTaxes(Request request, Socket client) throws IOException {
         SalaryInformationResponse response = new SalaryInformationResponse();
         String salaryType = request.getRequestBody().get("salary-type");
         String salary = request.getRequestBody().get("salary");
