@@ -34,7 +34,7 @@ public class JavaServer {
         System.out.println(firstLine);
         String method = firstLine.split(" ")[0];
         String wholePath = firstLine.split(" ")[1];
-        String path = "";
+        String path;
         List<Headers> headers = getHeaders(bf);
         Map<String, String> paramsMap = new HashMap<>();
         if (wholePath.contains("?") && wholePath.contains("=")) {
@@ -149,8 +149,7 @@ public class JavaServer {
                 .append("</h1>")
                 .append("</body>")
                 .append("</html>");
-        String htmlResponse = htmlBuilder.toString();
-        return htmlResponse;
+        return htmlBuilder.toString();
     }
 
     public static void handleResponseToBrowser(Socket client, String status, String contentType, byte[] content) throws IOException {
