@@ -38,22 +38,29 @@ public class JavaServer {
         BufferedReader bf = new BufferedReader(is);
         String firstLine = bf.readLine();
         System.out.println(firstLine);
-
         String method = firstLine.split(" ")[0];
         String wholePath = firstLine.split(" ")[1];
         String path = "";
+        List<Headers> headers = getHeaders(bf);
         Map<String, String> paramsMap = new HashMap<>();
         if (wholePath.contains("?") && wholePath.contains("=")) {
-            String params = wholePath.split("\\?")[1];
-            path = wholePath.split("\\?")[0];
-            String[] paramsArray = params.split("&");
-            for (String param : paramsArray) {
-                paramsMap.put(param.split("=")[0], param.split("=")[1]);
-            }
+            path = getParamsAndPath(wholePath, paramsMap);
         } else {
             path = wholePath;
             paramsMap = null;
         }
+        Request request = new Request(method, path, null, paramsMap, headers);
+         if (request.getMethod().equals("GET") && !(request.getParams() == null) ) {
+            handleRequestURIWithParameters(request, client);
+        } else if (request.getMethod().equals("POST")) {
+             getRequestBody(client, bf, request);
+             handleRequestBody(request, client);
+        } else {
+            findFilesByPath(client, request.getPath());
+        }
+    }
+
+    private static List<Headers> getHeaders(BufferedReader bf) throws IOException {
         String line = bf.readLine();
         List<Headers> headers = new ArrayList<>();
         while (!line.isEmpty()) {
@@ -61,41 +68,101 @@ public class JavaServer {
             line = bf.readLine();
             if (line.isEmpty()) {
                 break;
-            }
+            }}
+        return headers;
+    }
+
+    private static String getParamsAndPath(String wholePath, Map<String, String> paramsMap) {
+        String path;
+        String params = wholePath.split("\\?")[1];
+        path = wholePath.split("\\?")[0];
+        String[] paramsArray = params.split("&");
+        for (String param : paramsArray) {
+            paramsMap.put(param.split("=")[0], param.split("=")[1]);
         }
-        Request request = new Request(method, path, paramsMap, headers);
-//        System.out.println(request);
+        return path;
+    }
 
+    private static void getRequestBody(Socket client, BufferedReader bf, Request request) throws IOException {
+        int contentLength = 0;
+        for (Headers header : request.getHeaders()) {
+            if (header.getName().equals("Content-Length:")) {
+                contentLength = Integer.parseInt(header.getValue());
+                break;
+            }}
+        char[] buf = new char[contentLength];
+        bf.read(buf);
+        String requestBodyString = new String(buf);
+        if (request.getPath().equals("/fileuploadservlet")) {
+            saveFile(client, requestBodyString);
+        }
+        String[] split = requestBodyString.split("&");
+        Map<String, String> requestBody = new HashMap<>();
+        for (String s : split) {
+            requestBody.put(s.split("=")[0], s.split("=")[1]);
+        }
+        request.setRequestBody(requestBody);
+    }
 
-
-
-        if (path.contains("fileuploadservlet")) {
-            saveFile(client, bf, line);
-        } else if (method.equals("GET")) {
-            handleGetWithQueryParameters(client, request);
-        } else if (method.equals("POST")) {
-            handlePostMethod(client, bf, line);
+    private static void findFilesByPath(Socket client, String path) throws IOException {
+        Path filePath = getFilePath(path);
+        if (Files.exists(filePath)) {
+            String contentType = guessContentType(filePath);
+            handleResponseToBrowser(client, "200 OK", contentType, Files.readAllBytes(filePath));
         } else {
-            printRequest(line, bf);
-            controlFilesByPath(client, request.getPath());
+            handleResponseToBrowser(client, "404 Not Found", "image/jpeg", Files.readAllBytes(Path.of("html_files/pictures/404.jpeg")));
         }
     }
 
-    private static void saveFile(Socket client, BufferedReader bf, String line) throws IOException {
-        int contentLength = 0;
-        while (!line.isEmpty()) {
-            System.out.println(line);
-            line = bf.readLine();
-            if (line.startsWith("Content-Length:")) {
-                String cl = line.substring("Content-Length:".length()).trim();
-                contentLength = Integer.parseInt(cl);
-            } else if (line.isEmpty()) {
-                break;
-            }
+    private static void badRequestError(Socket client) throws IOException {
+        StringBuilder htmlBuilder = new StringBuilder();
+        htmlBuilder.append("<html>").
+                append("<body>").
+                append("<h1>").
+                append("BAD REQUEST")
+                .append("</h1>")
+                .append("</body>")
+                .append("</html>");
+        String htmlResponse = htmlBuilder.toString();
+        handleResponseToBrowser(client, "400 BAD REQUEST", "text/html", htmlResponse.getBytes());
+    }
+
+    private static void handleRequestURIWithParameters(Request request, Socket client) throws IOException {
+        if (request.getParams().isEmpty()) {
+            // parameetrite validatsioon
+            badRequestError(client);
+        } else if (request.getParams().containsKey("personalcode")) {
+            controlPersonalCode(request.getParams().get("personalcode"), client);
+        } else if (request.getParams().containsKey("dateofbirth") && request.getParams().containsKey("gender")) {
+            generatePersonalCode(request.getParams().get("dateofbirth"), request.getParams().get("gender"), client);
         }
-        char[] buf = new char[contentLength];
-        bf.read(buf);
-        String requestBody = new String(buf);
+    }
+
+    private static void handleRequestBody(Request request, Socket client) throws IOException {
+        if (request.getRequestBody().containsKey("salary")) {
+            calculateSalaryAndTaxes(request, client);
+        } else if (request.getRequestBody().containsKey("birthDay") & request.getRequestBody().containsKey("pk")) {
+            PersonalInfo person = new PersonalInfo();
+            person.setFirstName(request.getRequestBody().get("firstName"));
+            person.setLastName(request.getRequestBody().get("lastName"));
+            person.setDateOfBirth(request.getRequestBody().get("birthDay"));
+            person.setPersonalCode(request.getRequestBody().get("pk"));
+            addPersonalInfoToList(client, person);
+    }
+    }
+
+    private static void handleResponseToBrowser(Socket client, String status, String contentType, byte[] content) throws IOException {
+        OutputStream out = client.getOutputStream();
+        out.write(("HTTP/1.1 \r\n" + status).getBytes());
+        out.write(("ContentType: " + contentType + "\r\n").getBytes());
+        out.write("\r\n".getBytes());
+        out.write(content);
+        out.write("\r\n\r\n".getBytes());
+        out.flush();
+        client.close();
+    }
+
+    private static void saveFile(Socket client, String requestBody) throws IOException {
         String fileName = requestBody.split("\r\n")[1].split(" ")[3].split("=")[1];
         String fn = fileName.substring(1, fileName.length() - 1);
         System.out.println(fn);
@@ -104,97 +171,13 @@ public class JavaServer {
         FileOutputStream file = new FileOutputStream(fn);
         file.write(bytes);
         file.close();
-        OutputStream out = client.getOutputStream();
-        out.write(("HTTP/1.1 200 OK \r\n").getBytes());
-//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
-        out.write("\r\n".getBytes());
-        out.write("File is saved".getBytes());
-        out.write("\r\n\r\n".getBytes());
-        out.flush();
-        client.close();
+        handleResponseToBrowser(client, "200 OK", "text/html", "File is saved".getBytes());
     }
 
-    private static void handleGetWithQueryParameters(Socket client, Request request) throws IOException {
-        handleRequestURIWithParameters(request, client);
-    }
-    private static void printRequest(String line, BufferedReader bf) throws IOException {
-        while (!line.isEmpty()) {
-            System.out.println(line);
-            line = bf.readLine();
-            if (line.isEmpty()) {
-                break;
-            }
-        }
-    }
-
-    private static void handlePostMethod(Socket client, BufferedReader bf, String line) throws IOException {
-        int contentLength = 0;
-        while (!line.isEmpty()) {
-            System.out.println(line);
-            line = bf.readLine();
-            if (line.startsWith("Content-Length:")) {
-                String cl = line.substring("Content-Length:".length()).trim();
-                contentLength = Integer.parseInt(cl);
-            } else if (line.isEmpty()) {
-                break;
-            }
-        }
-        char[] buf = new char[contentLength];
-        bf.read(buf);
-        String requestBody = new String(buf);
-        handleRequestBody(requestBody, client);
-    }
-
-    private static void controlFilesByPath(Socket client, String path) throws IOException {
-        Path filePath = getFilePath(path);
-        if (Files.exists(filePath)) {
-            String contentType = guessContentType(filePath);
-            handleResponseWithFile(client, "200 OK", contentType, Files.readAllBytes(filePath));
-        } else {
-//            byte[] notFoundContent = "<h1>URL not found</h1>".getBytes();
-//            handleResponseWithFile(client, "404 Not Found", "text/html", notFoundContent);
-            handleResponseWithFile(client, "404 Not Found", "image/jpeg", Files.readAllBytes(Path.of("html_files/pictures/404.jpeg")));
-        }
-    }
-
-
-
-    private static void handleRequestBody(String requestBody, Socket client) throws IOException {
-        if (requestBody.contains("salary")) {
-            String[] split = requestBody.split("&");
-            String salaryType = "";
-            String salary = "";
-            for (String s : split) {
-                if (s.contains("salary-type")) {
-                    salaryType = (s.split("=")[1]);
-                } else if (s.contains("salary")) {
-                    salary = (s.split("=")[1]);
-                }
-                }
-            calculateSalaryAndTaxes(salaryType, salary, client);
-
-                } else if (requestBody.contains("birthDay") & requestBody.contains("pk")) {
-            String[] split = requestBody.split("&");
-            PersonalInfo person = new PersonalInfo();
-            for (String s : split) {
-                if (s.contains("firstName")) {
-                    person.setFirstName(s.split("=")[1]);
-                } else if (s.contains("lastName")) {
-                    person.setLastName(s.split("=")[1]);
-                } else if (s.contains("birthDay")) {
-                    person.setDateOfBirth(s.split("=")[1]);
-                } else if (s.contains("pk")) {
-                    person.setPersonalCode(s.split("=")[1]);
-                }
-            }
-            handlePostMethodResponse(client, person);
-    }
-    }
-
-    private static void calculateSalaryAndTaxes(String salaryType, String salary, Socket client) throws IOException {
+    private static void calculateSalaryAndTaxes(Request request , Socket client) throws IOException {
         SalaryInformationResponse response = new SalaryInformationResponse();
-        System.out.println(salary);
-        System.out.println(salaryType);
+        String salaryType = request.getRequestBody().get("salary-type");
+        String salary = request.getRequestBody().get("salary");
         switch (salaryType) {
             case "gross": {
                 response = new GrossSalary(new BigDecimal(salary)).getSalaryInformation();
@@ -229,17 +212,10 @@ public class JavaServer {
                 .append("</body>")
                 .append("</html>");
         String htmlResponse = htmlBuilder.toString();
-        OutputStream out = client.getOutputStream();
-        out.write(("HTTP/1.1 200 OK \r\n").getBytes());
-//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
-        out.write("\r\n".getBytes());
-        out.write(htmlResponse.getBytes());
-        out.write("\r\n\r\n".getBytes());
-        out.flush();
-        client.close();
+        handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
     }
 
-    private static void handlePostMethodResponse(Socket client, PersonalInfo person) throws IOException {
+    private static void addPersonalInfoToList(Socket client, PersonalInfo person) throws IOException {
         String p = person.getFirstName() + " " + person.getLastName() + ", " + person.getPersonalCode() + ", " + person.getDateOfBirth() + "\n";
         FileInputStream read = new FileInputStream("inimesed.txt");
         byte[] bytes = read.readAllBytes();
@@ -256,74 +232,7 @@ public class JavaServer {
                 .append("</body>")
                 .append("</html>");
         String htmlResponse = htmlBuilder.toString();
-        OutputStream out = client.getOutputStream();
-        out.write(("HTTP/1.1 200 OK \r\n").getBytes());
-//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
-        out.write("\r\n".getBytes());
-        out.write(htmlResponse.getBytes());
-        out.write("\r\n\r\n".getBytes());
-        out.flush();
-        client.close();
-    }
-
-    private static void handleResponseWithFile(Socket client, String status, String contentType, byte[] content) throws IOException {
-        OutputStream out = client.getOutputStream();
-        out.write(("HTTP/1.1 \r\n" + status).getBytes());
-        out.write(("ContentType: " + contentType + "\r\n").getBytes());
-        out.write("\r\n".getBytes());
-        out.write(content);
-        out.write("\r\n\r\n".getBytes());
-        out.flush();
-        client.close();
-    }
-
-    private static void handleRequestURIWithParameters(Request request, Socket client) throws IOException {
-        if (request.getParams().isEmpty()) {
-            // parameetrite validatsioon
-            badRequestError(client);
-        } else if (request.getParams().containsKey("personalcode")) {
-            controlPersonalCode(request.getParams().get("personalcode"), client);
-        } else if (request.getParams().containsKey("dateofbirth") && request.getParams().containsKey("gender")) {
-            generatePersonalCode(request.getParams().get("dateofbirth"), request.getParams().get("gender"), client);
-        }
-//        String response = "";
-//        if (path.contains("personalcode")) {
-//            response = path.split("\\?")[1].split("=")[1];
-//            controlPersonalCode(response, client);
-//        } else if (path.contains("dateofbirth") & path.contains("gender")) {
-//            String[] strings = path.split("&");
-//            String gender = "";
-//            String birthdate = "";
-//            for (String string : strings) {
-//                if (string.contains("gender")) {
-//                    gender = string.split("=")[1];
-//                } else if (string.contains("dateofbirth")) {
-//                    birthdate = string.split("=")[1];
-//                }
-//                response = gender + "&" + birthdate;
-//            }
-//            generatePersonalCode(response, client);
-//        }
-    }
-
-    private static void badRequestError(Socket client) throws IOException {
-        StringBuilder htmlBuilder = new StringBuilder();
-        htmlBuilder.append("<html>").
-                append("<body>").
-                append("<h1>").
-                append("BAD REQUEST")
-                .append("</h1>")
-                .append("</body>")
-                .append("</html>");
-        String htmlResponse = htmlBuilder.toString();
-        OutputStream out = client.getOutputStream();
-        out.write(("HTTP/1.1 400 BAD REQUEST \r\n").getBytes());
-//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
-        out.write("\r\n".getBytes());
-        out.write(htmlResponse.getBytes());
-        out.write("\r\n\r\n".getBytes());
-        out.flush();
-        client.close();
+        handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
     }
 
     private static void generatePersonalCode(String birthdate, String gender, Socket client) throws IOException {
@@ -341,14 +250,7 @@ public class JavaServer {
                 .append("</body>")
                 .append("</html>");
         String htmlResponse = htmlBuilder.toString();
-        OutputStream out = client.getOutputStream();
-        out.write(("HTTP/1.1 200 OK \r\n").getBytes());
-//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
-        out.write("\r\n".getBytes());
-        out.write(htmlResponse.getBytes());
-        out.write("\r\n\r\n".getBytes());
-        out.flush();
-        client.close();
+        handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
     }
 
     private static void controlPersonalCode(String response, Socket client) throws IOException {
@@ -372,23 +274,13 @@ public class JavaServer {
                 .append("</body>")
                 .append("</html>");
         String htmlResponse = htmlBuilder.toString();
-        OutputStream out = client.getOutputStream();
-        out.write(("HTTP/1.1 200 OK \r\n").getBytes());
-//        out.write(("ContentType: " + contentType + "\r\n").getBytes());
-        out.write("\r\n".getBytes());
-        out.write(htmlResponse.getBytes());
-        out.write("\r\n\r\n".getBytes());
-        out.flush();
-        client.close();
+        handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
     }
 
     private static Path getFilePath(String path) {
         if ("/".equals(path)) {
             path = "/main.html";
         }
-//        if ("/favicon.ico".equals(path)) {
-//            path = "/main.html";
-//        }
         return Paths.get("html_files", path);
     }
 

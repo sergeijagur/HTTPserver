@@ -7,8 +7,14 @@ public class Request {
 
     private String method;
     private String path;
+    private Map<String, String> requestBody;
     private Map<String, String> params;
     private List<Headers> headers;
+
+
+    public void setRequestBody(Map<String, String> requestBody) {
+        this.requestBody = requestBody;
+    }
 
     public String getMethod() {
         return method;
@@ -16,6 +22,10 @@ public class Request {
 
     public String getPath() {
         return path;
+    }
+
+    public Map<String, String> getRequestBody() {
+        return requestBody;
     }
 
     public Map<String, String> getParams() {
@@ -26,9 +36,10 @@ public class Request {
         return headers;
     }
 
-    public Request(String method, String path, Map<String, String> params, List<Headers> headers) {
+    public Request(String method, String path, Map<String, String> requestBody, Map<String, String> params, List<Headers> headers) {
         this.method = method;
         this.path = path;
+        this.requestBody = requestBody;
         this.params = params;
         this.headers = headers;
     }
@@ -42,8 +53,10 @@ public class Request {
         return "Request{" +
                 "method='" + method + '\'' +
                 ", path='" + path + '\'' +
+                ", requestBody='" + requestBody + '\'' +
                 ", params=" + params +
                 ", headers=" + headers +
                 '}';
     }
+
 }

@@ -2,6 +2,14 @@ package java_server;
 
 public class Headers {
 
+    public String getName() {
+        return name;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
     private String name;
     private String value;
 
