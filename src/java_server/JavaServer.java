@@ -1,11 +1,14 @@
 package java_server;
 
-import personalCode.EstonianPersonalCode;
-import personalCode.PersonalCodeService;
-import personalCode.html.EstonianPersonalCodeGenerator;
-import personalCode.html.NewInfoRequest;
-import personalCode.html.PersonalInfo;
-import salary_calculator.*;
+import api.personal_code.EstonianPersonalCode;
+import api.personal_code.PersonalCodeService;
+import api.salary_calculator.GrossSalary;
+import api.salary_calculator.NetSalary;
+import api.salary_calculator.SalaryInformationResponse;
+import api.salary_calculator.TotalExpense;
+import pk_html.EstonianPersonalCodeGenerator;
+import pk_html.NewInfoRequest;
+import pk_html.PersonalInfo;
 
 import java.io.*;
 import java.math.BigDecimal;
