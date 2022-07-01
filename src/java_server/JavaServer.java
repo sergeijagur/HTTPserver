@@ -50,11 +50,11 @@ public class JavaServer {
             paramsMap = null;
         }
         Request request = new Request(method, path, null, paramsMap, headers);
-         if (request.getMethod().equals("GET") && !(request.getParams() == null) ) {
+        if (request.getMethod().equals("GET") && !(request.getParams() == null)) {
             handleRequestURIWithParameters(request, client);
         } else if (request.getMethod().equals("POST")) {
-             getRequestBody(client, bf, request);
-             handleRequestBody(request, client);
+            getRequestBody(client, bf, request);
+            handleRequestBody(request, client);
         } else {
             findFilesByPath(client, request.getPath());
         }
@@ -68,7 +68,8 @@ public class JavaServer {
             line = bf.readLine();
             if (line.isEmpty()) {
                 break;
-            }}
+            }
+        }
         return headers;
     }
 
@@ -89,7 +90,8 @@ public class JavaServer {
             if (header.getName().equals("Content-Length:")) {
                 contentLength = Integer.parseInt(header.getValue());
                 break;
-            }}
+            }
+        }
         char[] buf = new char[contentLength];
         bf.read(buf);
         String requestBodyString = new String(buf);
@@ -115,15 +117,8 @@ public class JavaServer {
     }
 
     private static void badRequestError(Socket client) throws IOException {
-        StringBuilder htmlBuilder = new StringBuilder();
-        htmlBuilder.append("<html>").
-                append("<body>").
-                append("<h1>").
-                append("BAD REQUEST")
-                .append("</h1>")
-                .append("</body>")
-                .append("</html>");
-        String htmlResponse = htmlBuilder.toString();
+        String content = "BAD REQUEST";
+        String htmlResponse = getHtmlResponse(content);
         handleResponseToBrowser(client, "400 BAD REQUEST", "text/html", htmlResponse.getBytes());
     }
 
@@ -148,7 +143,20 @@ public class JavaServer {
             person.setDateOfBirth(request.getRequestBody().get("birthDay"));
             person.setPersonalCode(request.getRequestBody().get("pk"));
             addPersonalInfoToList(client, person);
+        }
     }
+
+    private static String getHtmlResponse(String content) {
+        StringBuilder htmlBuilder = new StringBuilder();
+        htmlBuilder.append("<html>").
+                append("<body>").
+                append("<h1>").
+                append(content)
+                .append("</h1>")
+                .append("</body>")
+                .append("</html>");
+        String htmlResponse = htmlBuilder.toString();
+        return htmlResponse;
     }
 
     private static void handleResponseToBrowser(Socket client, String status, String contentType, byte[] content) throws IOException {
@@ -162,6 +170,7 @@ public class JavaServer {
         client.close();
     }
 
+
     private static void saveFile(Socket client, String requestBody) throws IOException {
         String fileName = requestBody.split("\r\n")[1].split(" ")[3].split("=")[1];
         String fn = fileName.substring(1, fileName.length() - 1);
@@ -174,7 +183,7 @@ public class JavaServer {
         handleResponseToBrowser(client, "200 OK", "text/html", "File is saved".getBytes());
     }
 
-    private static void calculateSalaryAndTaxes(Request request , Socket client) throws IOException {
+    private static void calculateSalaryAndTaxes(Request request, Socket client) throws IOException {
         SalaryInformationResponse response = new SalaryInformationResponse();
         String salaryType = request.getRequestBody().get("salary-type");
         String salary = request.getRequestBody().get("salary");
@@ -196,24 +205,18 @@ public class JavaServer {
     }
 
     private static void handleSalaryCalculatorResponse(SalaryInformationResponse response, Socket client) throws IOException {
-        StringBuilder htmlBuilder = new StringBuilder();
-        htmlBuilder.append("<html>").
-                append("<body>").
-                append("<h1>").
-                append("<br>Total Cost for Employer (Wage Fund): " + response.getEmployerExpense() + "<br>" +
-                        "Social Tax: " + response.getSocialTax() + "<br>" +
-                        "Unemployment insurance (employer): " + response.getUnemploymentInsuranceByEmployer() + "<br>" +
-                        "Gross Salary/Wage: " + response.getGrossSalary() + "<br>" +
-                        "Funded pension (II pillar): " + response.getPension() + "<br>" +
-                        "Unemployment insurance (employee): " + response.getUnemploymentInsuranceByEmployee() + "<br>" +
-                        "Income Tax: " + response.getIncomeTax() + "<br>" +
-                        "Net Salary/Wage: " + response.getNetSalary() + "<br>")
-                .append("</h1>")
-                .append("</body>")
-                .append("</html>");
-        String htmlResponse = htmlBuilder.toString();
+        String content = "<br>Total Cost for Employer (Wage Fund): " + response.getEmployerExpense() + "<br>" +
+                "Social Tax: " + response.getSocialTax() + "<br>" +
+                "Unemployment insurance (employer): " + response.getUnemploymentInsuranceByEmployer() + "<br>" +
+                "Gross Salary/Wage: " + response.getGrossSalary() + "<br>" +
+                "Funded pension (II pillar): " + response.getPension() + "<br>" +
+                "Unemployment insurance (employee): " + response.getUnemploymentInsuranceByEmployee() + "<br>" +
+                "Income Tax: " + response.getIncomeTax() + "<br>" +
+                "Net Salary/Wage: " + response.getNetSalary() + "<br>";
+        String htmlResponse = getHtmlResponse(content);
         handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
     }
+
 
     private static void addPersonalInfoToList(Socket client, PersonalInfo person) throws IOException {
         String p = person.getFirstName() + " " + person.getLastName() + ", " + person.getPersonalCode() + ", " + person.getDateOfBirth() + "\n";
@@ -223,15 +226,8 @@ public class JavaServer {
         fileSave.write(bytes);
         fileSave.write(p.getBytes());
         fileSave.close();
-        StringBuilder htmlBuilder = new StringBuilder();
-        htmlBuilder.append("<html>").
-                append("<body>").
-                append("<h1>").
-                append("New person " + p + "is added to list")
-                .append("</h1>")
-                .append("</body>")
-                .append("</html>");
-        String htmlResponse = htmlBuilder.toString();
+        String content = "New person " + p + "is added to list";
+        String htmlResponse = getHtmlResponse(content);
         handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
     }
 
@@ -241,15 +237,8 @@ public class JavaServer {
     }
 
     private static void handleResponseWithGeneratedPersonalCode(Socket client, String personalCode) throws IOException {
-        StringBuilder htmlBuilder = new StringBuilder();
-        htmlBuilder.append("<html>").
-                append("<body>").
-                append("<h1>").
-                append("Generated personal code is " + personalCode)
-                .append("</h1>")
-                .append("</body>")
-                .append("</html>");
-        String htmlResponse = htmlBuilder.toString();
+        String content = "Generated personal code is " + personalCode;
+        String htmlResponse = getHtmlResponse(content);
         handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
     }
 
@@ -265,15 +254,8 @@ public class JavaServer {
     }
 
     private static void handleResponseForPersonalCodeController(String response, Socket client, String isValid) throws IOException {
-        StringBuilder htmlBuilder = new StringBuilder();
-        htmlBuilder.append("<html>").
-                append("<body>").
-                append("<h1>").
-                append("Personal code " + response + isValid)
-                .append("</h1>")
-                .append("</body>")
-                .append("</html>");
-        String htmlResponse = htmlBuilder.toString();
+        String content = "Personal code " + response + isValid;
+        String htmlResponse = getHtmlResponse(content);
         handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
     }
 
