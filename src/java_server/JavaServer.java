@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import java_server.service.FilesToServerService;
 import java_server.service.PersonalCodeControllerAndGeneratorService;
 import java_server.service.SalaryCalculatorService;
+import org.json.JSONObject;
 import personal_code_custom.PersonalInfo;
 
 import java.io.*;
@@ -124,9 +125,19 @@ public class JavaServer {
         out.write(object.toString().getBytes());
         out.close();
 //        String response = getHtmlResponse("JSON SENT");
+
         String response = object.toString();
 
-        handleResponseToBrowser(client, "200 OK", "text/html", response.getBytes());
+//        String response = "{\"firstName\":\"MIKK\",\"lastName\":\"MAKK\",\"birthDay\":\"1990-07-13\"}";
+        PersonalInfo pi = new PersonalInfo("Asa", "Ala", "1990-12-12", "12345678909");
+        String jsonInString = new Gson().toJson(pi);
+        JSONObject mJSONObject = new JSONObject(jsonInString);
+        String res = mJSONObject.toString();
+
+
+//        handleResponseToBrowser(client, "200 OK", "text/html", response.getBytes());
+
+        handleResponseToBrowser(client, "200 OK", "text/html", res.getBytes());
     }
 
     private static void findFilesByPath(Socket client, String path) throws IOException {
