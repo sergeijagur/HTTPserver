@@ -2,55 +2,47 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
-
-    <form method="POST" action="" >
-        <br>
-        <br>
-        <input type="text" name="firstN"  id="firstN">
-        <lab for="firstN">First name</lab>
-        <br>
-        <br>
-        <input type="text" name="lastN"  id="lastN">
-        <lab for="lastN">Last name</lab>
-        <br>
-        <br>
-        <input type="date" name="birthD"  id="birthD">
-        <lab for="birthD">Birthday</lab>
-        <br>
-        <br>
-        <button type="submit" id="submit" onclick="post()">SEND</button>
-<!--        <button type="submit" id="submit" onclick="handlesubmit()">SEND</button>-->
-        <br>
-    </form>
+    <title>JSON MESSAGE</title>
 </head>
 <body>
 
+<input type="text" name="firstN"  id="firstN">
+<lab for="firstN">First name</lab>
+<br>
+<br>
+<input type="text" name="lastN"  id="lastN">
+<lab for="lastN">Last name</lab>
+<br>
+<br>
+<input type="date" name="birthD"  id="birthD">
+<lab for="birthD">Birthday</lab>
+<br>
+<br>
+<button type="submit" id="submit" onclick="post()">SEND</button>
+<!--        <button type="submit" id="submit" onclick="handlesubmit()">SEND</button>-->
+<br>
 </body>
-
 </html>
-
 
 <script>
 
-
     function post() {
-        console.log(document.getElementById('firstN'))
-        var xhr = new XMLHttpRequest();
-        var url = "http://localhost:8080/datain";
+        const xhr = new XMLHttpRequest();
+        const url = "http://localhost:8080/datain.html";
         xhr.open("POST", url, true);
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4 && xhr.status === 200) {
-                var json = JSON.parse(xhr.responseText);
-                console.log(json.email + ", " + json.password);
-            }
-        };
-        var firstName = document.getElementById('firstN').value;
-        var lastName = document.getElementById('lastN').value;
-        var birthday = document.getElementById('birthD').value;
-        var data = JSON.stringify({"firstName" : firstName, "lastName" : lastName , "birthDay" : birthday });
+        // xhr.onreadystatechange = function () {
+        //     if (xhr.readyState === 4 && xhr.status === 200) {
+        //         const json = JSON.parse(xhr.responseText);
+        //         console.log(json.email + ", " + json.password);
+        //     }
+        // };
+        const firstName = document.getElementById('firstN').value;
+        const lastName = document.getElementById('lastN').value;
+        const birthday = document.getElementById('birthD').value;
+        const data = JSON.stringify({"firstName": firstName, "lastName": lastName, "birthDay": birthday});
         xhr.send(data);
+
     }
 
 
