@@ -21,10 +21,25 @@
 <button type="submit" id="submit" onclick="post()">SEND</button>
 <!--        <button type="submit" id="submit" onclick="handlesubmit()">SEND</button>-->
 <br>
+<br>
+<br>
+
+
+<form action="">
+    <input type="text" name="first" id="first" value="">
+    <br>
+    <br>
+    <input type="text" name="last" id="last" value="">
+    <br>
+    <br>
+    <input type="text" name="bd" id="bd" value="">
+</form>
 </body>
 </html>
 
 <script>
+
+
 
     function post() {
         const xhr = new XMLHttpRequest();
@@ -33,7 +48,13 @@
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4 && xhr.status === 200) {
-                document.write(this.responseText);
+                // document.write(this.responseText);
+
+                console.log("ready")
+                const Data = JSON.parse(xhr.responseText);
+                document.getElementById('first').value = Data.firstName;
+                document.getElementById('last').value = Data.lastName;
+                document.getElementById('bd').value = Data.birthDay;
             }
         };
         const firstName = document.getElementById('firstN').value;
@@ -41,8 +62,6 @@
         const birthday = document.getElementById('birthD').value;
         const data = JSON.stringify({"firstName": firstName, "lastName": lastName, "birthDay": birthday});
         xhr.send(data);
-
-
     }
 
 

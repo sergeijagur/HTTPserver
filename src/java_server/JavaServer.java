@@ -120,11 +120,12 @@ public class JavaServer {
     }
 
     private static void handleJsonObject(JsonElement object, Socket client) throws IOException {
-//        byte asByte = object.getAsByte();
         OutputStream out = new FileOutputStream("test.json");
         out.write(object.toString().getBytes());
         out.close();
-        String response = getHtmlResponse("JSON SENT");
+//        String response = getHtmlResponse("JSON SENT");
+        String response = object.toString();
+
         handleResponseToBrowser(client, "200 OK", "text/html", response.getBytes());
     }
 
