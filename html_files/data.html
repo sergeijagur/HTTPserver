@@ -31,17 +31,17 @@
         const url = "http://localhost:8080/datain.html";
         xhr.open("POST", url, true);
         xhr.setRequestHeader("Content-Type", "application/json");
-        // xhr.onreadystatechange = function () {
-        //     if (xhr.readyState === 4 && xhr.status === 200) {
-        //         const json = JSON.parse(xhr.responseText);
-        //         console.log(json.email + ", " + json.password);
-        //     }
-        // };
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                document.write(this.responseText);
+            }
+        };
         const firstName = document.getElementById('firstN').value;
         const lastName = document.getElementById('lastN').value;
         const birthday = document.getElementById('birthD').value;
         const data = JSON.stringify({"firstName": firstName, "lastName": lastName, "birthDay": birthday});
         xhr.send(data);
+
 
     }
 

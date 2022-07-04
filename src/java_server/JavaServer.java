@@ -124,9 +124,8 @@ public class JavaServer {
         OutputStream out = new FileOutputStream("test.json");
         out.write(object.toString().getBytes());
         out.close();
-//        String response = getHtmlResponse("JSON SENT");
-//        handleResponseToBrowser(client, "200 OK", "text/html", response.getBytes());
-        handleResponseToBrowser(client, "200 OK", "text/html", "DONE".getBytes());
+        String response = getHtmlResponse("JSON SENT");
+        handleResponseToBrowser(client, "200 OK", "text/html", response.getBytes());
     }
 
     private static void findFilesByPath(Socket client, String path) throws IOException {
