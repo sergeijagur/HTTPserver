@@ -41,30 +41,6 @@ public class JavaServer {
         List<Headers> headers = getHeaders(bf);
         Map<String, String> paramsMap = new HashMap<>();
 
-//        if (wholePath.contains("data")) {
-//            // header('Content-Type: application/json');
-//            int contentLength = 0;
-//            for (Headers header : headers) {
-//                if (header.getName().equals("Content-Length:")) {
-//                    contentLength = Integer.parseInt(header.getValue());
-//                    break;
-//                }
-//            }
-//            char[] buf = new char[contentLength];
-//            bf.read(buf);
-//            String requestBodyString = new String(buf);
-////            Gson gson = new Gson();
-//            JsonParser jsonParser = new JsonParser();
-//            JsonElement object = jsonParser.parse(requestBodyString);
-//            System.out.println(object.toString());
-//        }
-
-
-
-
-
-
-
         if (wholePath.contains("?") && wholePath.contains("=")) {
             path = getParamsAndPath(wholePath, paramsMap);
         } else {
@@ -76,7 +52,6 @@ public class JavaServer {
             handleRequestURIWithParameters(request, client);
         } else if (request.getMethod().equals("POST")) {
             getRequestBody(client, bf, request);
-            handleRequestBody(request, client);
         } else {
             findFilesByPath(client, request.getPath());
         }
@@ -119,26 +94,38 @@ public class JavaServer {
         String requestBodyString = new String(buf);
         if (request.getPath().equals("/fileuploadservlet")) {
             FilesToServerService.saveFile(client, requestBodyString);
-        }
-        for (Headers header : request.getHeaders()) {
-            if (header.getValue().equals("application/json")) {
-                Gson gson = new Gson();
-                JsonElement object = new JsonParser().parse(requestBodyString);
-                System.out.println(object.toString());
-                handlaJsonObject(object);
-                break;
+        } else if (isJson(request)) {
+            Gson gson = new Gson();
+            JsonElement object = new JsonParser().parse(requestBodyString);
+            System.out.println(object.toString());
+            handleJsonObject(object, client);
+        } else {
+            String[] split = requestBodyString.split("&");
+            Map<String, String> requestBody = new HashMap<>();
+            for (String s : split) {
+                requestBody.put(s.split("=")[0], s.split("=")[1]);
             }
+            request.setRequestBody(requestBody);
+            handleRequestBody(request, client);
         }
-
-        String[] split = requestBodyString.split("&");
-        Map<String, String> requestBody = new HashMap<>();
-        for (String s : split) {
-            requestBody.put(s.split("=")[0], s.split("=")[1]);
-        }
-        request.setRequestBody(requestBody);
     }
 
-    private static void handlaJsonObject(JsonElement object) {
+    private static boolean isJson(Request request) {
+        for (Headers header : request.getHeaders()) {
+            if (header.getValue().equals("application/json")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void handleJsonObject(JsonElement object, Socket client) throws IOException {
+//        byte asByte = object.getAsByte();
+        OutputStream out = new FileOutputStream("test.json");
+        out.write(object.toString().getBytes());
+        out.close();
+        String response = getHtmlResponse("JSON SENT");
+        handleResponseToBrowser(client, "200 OK", "text/html", response.getBytes());
 
     }
 

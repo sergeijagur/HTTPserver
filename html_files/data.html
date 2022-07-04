@@ -7,15 +7,15 @@
     <form method="POST" action="" >
         <br>
         <br>
-        <input type="text" name="firstN" value="firstN" id="firstN">
+        <input type="text" name="firstN"  id="firstN">
         <lab for="firstN">First name</lab>
         <br>
         <br>
-        <input type="text" name="lastN" value="lastN" id="lastN">
+        <input type="text" name="lastN"  id="lastN">
         <lab for="lastN">Last name</lab>
         <br>
         <br>
-        <input type="date" name="birthD" value="birthD" id="birthD">
+        <input type="date" name="birthD"  id="birthD">
         <lab for="birthD">Birthday</lab>
         <br>
         <br>
@@ -33,9 +33,11 @@
 
 <script>
 
+
     function post() {
+        console.log(document.getElementById('firstN'))
         var xhr = new XMLHttpRequest();
-        var url = "http://localhost:8080/data";
+        var url = "http://localhost:8080/datain";
         xhr.open("POST", url, true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.onreadystatechange = function () {
@@ -44,7 +46,10 @@
                 console.log(json.email + ", " + json.password);
             }
         };
-        var data = JSON.stringify({"firstName" : "firstN", "lastName" : "lastN", "bithDay" : "birthD" });
+        var firstName = document.getElementById('firstN').value;
+        var lastName = document.getElementById('lastN').value;
+        var birthday = document.getElementById('birthD').value;
+        var data = JSON.stringify({"firstName" : firstName, "lastName" : lastName , "birthDay" : birthday });
         xhr.send(data);
     }
 
@@ -53,7 +58,7 @@
     //     event.preventDefault();
     //     const data = new FormData(event.target);
     //     const value = Object.fromEntries(data.entries());
-    //     // const value = data.get('firstN');
+    //     const value = data.get('firstN');
     //     console.log({ value });
     // }
     // const form = document.querySelector('form');
