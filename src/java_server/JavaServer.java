@@ -1,5 +1,8 @@
 package java_server;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import java_server.service.FilesToServerService;
 import java_server.service.PersonalCodeControllerAndGeneratorService;
 import java_server.service.SalaryCalculatorService;
@@ -37,6 +40,31 @@ public class JavaServer {
         String path;
         List<Headers> headers = getHeaders(bf);
         Map<String, String> paramsMap = new HashMap<>();
+
+//        if (wholePath.contains("data")) {
+//            // header('Content-Type: application/json');
+//            int contentLength = 0;
+//            for (Headers header : headers) {
+//                if (header.getName().equals("Content-Length:")) {
+//                    contentLength = Integer.parseInt(header.getValue());
+//                    break;
+//                }
+//            }
+//            char[] buf = new char[contentLength];
+//            bf.read(buf);
+//            String requestBodyString = new String(buf);
+////            Gson gson = new Gson();
+//            JsonParser jsonParser = new JsonParser();
+//            JsonElement object = jsonParser.parse(requestBodyString);
+//            System.out.println(object.toString());
+//        }
+
+
+
+
+
+
+
         if (wholePath.contains("?") && wholePath.contains("=")) {
             path = getParamsAndPath(wholePath, paramsMap);
         } else {
@@ -92,12 +120,26 @@ public class JavaServer {
         if (request.getPath().equals("/fileuploadservlet")) {
             FilesToServerService.saveFile(client, requestBodyString);
         }
+        for (Headers header : request.getHeaders()) {
+            if (header.getValue().equals("application/json")) {
+                Gson gson = new Gson();
+                JsonElement object = new JsonParser().parse(requestBodyString);
+                System.out.println(object.toString());
+                handlaJsonObject(object);
+                break;
+            }
+        }
+
         String[] split = requestBodyString.split("&");
         Map<String, String> requestBody = new HashMap<>();
         for (String s : split) {
             requestBody.put(s.split("=")[0], s.split("=")[1]);
         }
         request.setRequestBody(requestBody);
+    }
+
+    private static void handlaJsonObject(JsonElement object) {
+
     }
 
     private static void findFilesByPath(Socket client, String path) throws IOException {
