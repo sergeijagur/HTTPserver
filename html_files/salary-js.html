@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Salary calculator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="../pictures/favicon.ico">
+
+</head>
+<body>
+
+<h1>
+    Calculate all taxes and salary
+</h1>
+    <la>SALARY TYPE</la>
+    <br>
+    <br>
+    <div data-name = "check">
+    <input type="radio" name="salary-type" id="net" value="net" required>
+    <label for="net">Net salary</label><br>
+    <input type="radio" name="salary-type" id="gross" value="gross" required>
+    <label for="gross">Gross salary</label><br>
+        <input type="radio" name="salary-type" id="total-expense" value="total-expense" required>
+    <label for="total-expense">Total Expense</label>
+    </div>
+    <br>
+    <input type="number" id="salary" name="salary"  placeholder="amount" required>
+    <br>
+    <br>
+    <button type="submit" id="submit" onclick="post()">Calculate</button>
+    <br>
+
+<div align="right">
+    <h1>
+        RESULT
+    </h1>
+    <table>
+        <thead>
+        <tr>
+            <th></th>
+            <th>EUR</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Total Cost for Employer (Wage Fund):</td>
+            <td>
+                <input type="text" name="total-cost" id="total-cost" value="0.00">
+            </td>
+        </tr>
+        <tr>
+            <td>Social Tax:</td>
+            <td>
+                <input type="text" name="social-tax" id="social-tax" value="0.00">
+            </td>
+        </tr>
+        <tr>
+            <td>Unemployment insurance (employer):</td>
+            <td>
+                <input type="text" id="insurance-employer" name="insurance-employer" value="0.00">
+            </td>
+        </tr>
+        <tr>
+            <td>Gross Salary/Wage:</td>
+            <td>
+                <input type="text" name="gross-salary" id="gross-salary" value="0.00">
+            </td>
+        </tr>
+        <tr>
+            <td>Funded pension (II pillar):</td>
+            <td>
+                <input type="text" id="pension" name="pension" value="0.00">
+            </td>
+        </tr>
+        <tr>
+            <td>Unemployment insurance (employee):</td>
+            <td>
+                <input type="text" id="insurance-employee" name="insurance-employee" value="0.00">
+            </td>
+        </tr>
+        <tr>
+            <td>Income Tax:</td>
+            <td>
+            <input type="text" name="incomeTax" id="incomeTax" value="0.00">
+            </td>
+        </tr>
+        <tr>
+            <td>Net Salary/Wage:</td>
+            <td>
+                <input type="text" name="net-salary" id="net-salary" value="0.00">
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>
+
+<script>
+    function post() {
+        const xhr = new XMLHttpRequest();
+        const url = "http://localhost:8080/salaryResult";
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                const Data = JSON.parse(xhr.responseText);
+                document.getElementById('total-cost').value = Data.employerExpense;
+                document.getElementById('social-tax').value = Data.socialTax;
+                document.getElementById('insurance-employer').value = Data.unemploymentInsuranceByEmployer;
+                document.getElementById('gross-salary').value = Data.grossSalary;
+                document.getElementById('pension').value = Data.pension;
+                document.getElementById('insurance-employee').value = Data.unemploymentInsuranceByEmployee;
+                document.getElementById('incomeTax').value = Data.taxExemption;
+                document.getElementById('net-salary').value = Data.netSalary;
+            }
+        };
+        const salaryType = document.querySelector('input[name=salary-type]:checked').value;
+        const salary = document.getElementById('salary').value;
+        const data = JSON.stringify({"salaryType": salaryType, "salary": salary});
+        xhr.send(data);
+    }
+
+</script>

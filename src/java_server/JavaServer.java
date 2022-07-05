@@ -97,9 +97,12 @@ public class JavaServer {
             FilesToServerService.saveFile(client, requestBodyString);
         } else if (isJson(request)) {
             Gson gson = new Gson();
-            JsonElement object = new JsonParser().parse(requestBodyString);
-            System.out.println(object.toString());
-            handleJsonObject(object, client);
+            JSONObject object = new JSONObject(requestBodyString);
+            if (request.getPath().equals("/salaryResult")) {
+                handleSalaryJsonResponse(object, client);
+            } else {
+                handleJsonObject(object, client);
+            }
         } else {
             String[] split = requestBodyString.split("&");
             Map<String, String> requestBody = new HashMap<>();
@@ -111,6 +114,10 @@ public class JavaServer {
         }
     }
 
+    private static void handleSalaryJsonResponse(JSONObject object, Socket client) throws IOException {
+        SalaryCalculatorService.calculateSalaryJson(object, client);
+    }
+
     private static boolean isJson(Request request) {
         for (Headers header : request.getHeaders()) {
             if (header.getValue().equals("application/json")) {
@@ -120,24 +127,18 @@ public class JavaServer {
         return false;
     }
 
-    private static void handleJsonObject(JsonElement object, Socket client) throws IOException {
+    private static void handleJsonObject(JSONObject object, Socket client) throws IOException {
         OutputStream out = new FileOutputStream("test.json");
         out.write(object.toString().getBytes());
         out.close();
 //        String response = getHtmlResponse("JSON SENT");
-
-        String response = object.toString();
-
+//        String response = object.toString();
 //        String response = "{\"firstName\":\"MIKK\",\"lastName\":\"MAKK\",\"birthDay\":\"1990-07-13\"}";
         PersonalInfo pi = new PersonalInfo("Asa", "Ala", "1990-12-12", "12345678909");
         String jsonInString = new Gson().toJson(pi);
         JSONObject mJSONObject = new JSONObject(jsonInString);
-        String res = mJSONObject.toString();
-
-
-//        handleResponseToBrowser(client, "200 OK", "text/html", response.getBytes());
-
-        handleResponseToBrowser(client, "200 OK", "text/html", res.getBytes());
+        String response = mJSONObject.toString();
+        handleResponseToBrowser(client, "200 OK", "application/json", response.getBytes());
     }
 
     private static void findFilesByPath(Socket client, String path) throws IOException {

@@ -33,13 +33,14 @@
     <br>
     <br>
     <input type="text" name="bd" id="bd" value="">
+    <br>
+    <br>
+    <input type="text" name="bd" id="pk" value="">
 </form>
 </body>
 </html>
 
 <script>
-
-
 
     function post() {
         const xhr = new XMLHttpRequest();
@@ -54,7 +55,7 @@
                 document.getElementById('first').value = Data.firstName;
                 document.getElementById('last').value = Data.lastName;
                 document.getElementById('bd').value = Data.dateOfBirth;
-                document.getElementById('bd').value = Data.personalCode;
+                document.getElementById('pk').value = Data.personalCode;
                 // document.getElementById('bd').value = Data.birthDay;
             }
         };

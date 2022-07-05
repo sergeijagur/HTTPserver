@@ -3,7 +3,12 @@ import api.salary_calculator.GrossSalary;
 import api.salary_calculator.NetSalary;
 import api.salary_calculator.SalaryInformationResponse;
 import api.salary_calculator.TotalExpense;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import java_server.Request;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.Socket;
@@ -45,5 +50,35 @@ public class SalaryCalculatorService {
                 "Net Salary/Wage: " + response.getNetSalary() + "<br>";
         String htmlResponse = getHtmlResponse(content);
         handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
+    }
+
+    public static void calculateSalaryJson(JSONObject object, Socket client) throws IOException {
+        SalaryInformationResponse response = new SalaryInformationResponse();
+
+        JSONObject jso = new JSONObject(object.toString());
+        String salaryType = jso.getString("salaryType");
+        String salary = jso.getString("salary");
+        switch (salaryType) {
+            case "gross": {
+                response = new GrossSalary(new BigDecimal(salary)).getSalaryInformation();
+                break;
+            }
+            case "net": {
+                response = new NetSalary(new BigDecimal(salary)).getSalaryInformation();
+                break;
+            }
+            case "total-expense": {
+                response = new TotalExpense(new BigDecimal(salary)).getSalaryInformation();
+                break;
+            }
+        }
+        handleSalaryCalculatorJsonResponse(response, client);
+    }
+
+    private static void handleSalaryCalculatorJsonResponse(SalaryInformationResponse response, Socket client) throws IOException {
+        String jsonInString = new Gson().toJson(response);
+        JSONObject mJSONObject = new JSONObject(jsonInString);
+        String res = mJSONObject.toString();
+        handleResponseToBrowser(client, "200 OK", "application/json", res.getBytes());
     }
 }
