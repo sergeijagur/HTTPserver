@@ -41,7 +41,6 @@ public class JavaServer {
         String path;
         List<Headers> headers = getHeaders(bf);
         Map<String, String> paramsMap = new HashMap<>();
-
         if (wholePath.contains("?") && wholePath.contains("=")) {
             path = getParamsAndPath(wholePath, paramsMap);
         } else {
@@ -66,8 +65,7 @@ public class JavaServer {
             line = bf.readLine();
             if (line.isEmpty()) {
                 break;
-            }
-        }
+            }}
         return headers;
     }
 
@@ -83,39 +81,47 @@ public class JavaServer {
     }
 
     private static void getRequestBody(Socket client, BufferedReader bf, Request request) throws IOException {
+        String requestBodyString = getRequestBodyString(bf, request);
+        if (request.getPath().equals("/fileuploadservlet")) {
+            FilesToServerService.saveFile(client, requestBodyString);
+        } else if (isJson(request)) {
+            handleJsonRequest(client, request, requestBodyString);
+        } else {
+            generateRequestBodyWithParams(client, request, requestBodyString);
+        }
+    }
+
+    private static String getRequestBodyString(BufferedReader bf, Request request) throws IOException {
         int contentLength = 0;
         for (Headers header : request.getHeaders()) {
             if (header.getName().equals("Content-Length:")) {
                 contentLength = Integer.parseInt(header.getValue());
                 break;
-            }
-        }
+            }}
         char[] buf = new char[contentLength];
         bf.read(buf);
         String requestBodyString = new String(buf);
-        if (request.getPath().equals("/fileuploadservlet")) {
-            FilesToServerService.saveFile(client, requestBodyString);
-        } else if (isJson(request)) {
-            Gson gson = new Gson();
-            JSONObject object = new JSONObject(requestBodyString);
-            if (request.getPath().equals("/salaryResult")) {
-                handleSalaryJsonResponse(object, client);
-            } else {
-                handleJsonObject(object, client);
-            }
-        } else {
-            String[] split = requestBodyString.split("&");
-            Map<String, String> requestBody = new HashMap<>();
-            for (String s : split) {
-                requestBody.put(s.split("=")[0], s.split("=")[1]);
-            }
-            request.setRequestBody(requestBody);
-            handleRequestBody(request, client);
-        }
+        return requestBodyString;
     }
 
-    private static void handleSalaryJsonResponse(JSONObject object, Socket client) throws IOException {
-        SalaryCalculatorService.calculateSalaryJson(object, client);
+    private static void generateRequestBodyWithParams(Socket client, Request request, String requestBodyString) throws IOException {
+        String[] split = requestBodyString.split("&");
+        Map<String, String> requestBody = new HashMap<>();
+        for (String s : split) {
+            requestBody.put(s.split("=")[0], s.split("=")[1]);
+        }
+        request.setRequestBody(requestBody);
+        handleRequestBody(request, client);
+    }
+
+    private static void handleJsonRequest(Socket client, Request request, String requestBodyString) throws IOException {
+        Gson gson = new Gson();
+        JSONObject object = new JSONObject(requestBodyString);
+        if (request.getPath().equals("/salaryResult")) {
+            SalaryCalculatorService.calculateSalaryJson(object, client);
+        } else {
+            handleJsonObject(object, client);
+        }
     }
 
     private static boolean isJson(Request request) {
