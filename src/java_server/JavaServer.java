@@ -1,8 +1,6 @@
 package java_server;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 import java_server.service.FilesToServerService;
 import java_server.service.PersonalCodeControllerAndGeneratorService;
 import java_server.service.SalaryCalculatorService;

@@ -4,8 +4,6 @@ import api.salary_calculator.NetSalary;
 import api.salary_calculator.SalaryInformationResponse;
 import api.salary_calculator.TotalExpense;
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import java_server.Request;
 import org.json.JSONObject;
 
@@ -22,21 +20,24 @@ public class SalaryCalculatorService {
         SalaryInformationResponse response = new SalaryInformationResponse();
         String salaryType = request.getRequestBody().get("salary-type");
         String salary = request.getRequestBody().get("salary");
-        switch (salaryType) {
-            case "gross": {
-                response = new GrossSalary(new BigDecimal(salary)).getSalaryInformation();
-                break;
-            }
-            case "net": {
-                response = new NetSalary(new BigDecimal(salary)).getSalaryInformation();
-                break;
-            }
-            case "total-expense": {
-                response = new TotalExpense(new BigDecimal(salary)).getSalaryInformation();
-                break;
-            }
-        }
+        response = getSalaryInformationResponse(response, salaryType, salary);
         handleSalaryCalculatorResponse(response, client);
+    }
+
+    public static void calculateSalaryJson(JSONObject object, Socket client) throws IOException {
+        SalaryInformationResponse response = new SalaryInformationResponse();
+        JSONObject jso = new JSONObject(object.toString());
+        String salaryType = jso.getString("salaryType");
+        String salary = jso.getString("salary");
+        response = getSalaryInformationResponse(response, salaryType, salary);
+        handleSalaryCalculatorJsonResponse(response, client);
+    }
+
+    private static void handleSalaryCalculatorJsonResponse(SalaryInformationResponse response, Socket client) throws IOException {
+        String jsonInString = new Gson().toJson(response);
+        JSONObject mJSONObject = new JSONObject(jsonInString);
+        String res = mJSONObject.toString();
+        handleResponseToBrowser(client, "200 OK", "application/json", res.getBytes());
     }
 
     private static void handleSalaryCalculatorResponse(SalaryInformationResponse response, Socket client) throws IOException {
@@ -52,12 +53,7 @@ public class SalaryCalculatorService {
         handleResponseToBrowser(client, "200 OK", "text/html", htmlResponse.getBytes());
     }
 
-    public static void calculateSalaryJson(JSONObject object, Socket client) throws IOException {
-        SalaryInformationResponse response = new SalaryInformationResponse();
-
-        JSONObject jso = new JSONObject(object.toString());
-        String salaryType = jso.getString("salaryType");
-        String salary = jso.getString("salary");
+    private static SalaryInformationResponse getSalaryInformationResponse(SalaryInformationResponse response, String salaryType, String salary) {
         switch (salaryType) {
             case "gross": {
                 response = new GrossSalary(new BigDecimal(salary)).getSalaryInformation();
@@ -72,13 +68,6 @@ public class SalaryCalculatorService {
                 break;
             }
         }
-        handleSalaryCalculatorJsonResponse(response, client);
-    }
-
-    private static void handleSalaryCalculatorJsonResponse(SalaryInformationResponse response, Socket client) throws IOException {
-        String jsonInString = new Gson().toJson(response);
-        JSONObject mJSONObject = new JSONObject(jsonInString);
-        String res = mJSONObject.toString();
-        handleResponseToBrowser(client, "200 OK", "application/json", res.getBytes());
+        return response;
     }
 }
