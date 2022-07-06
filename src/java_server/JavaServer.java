@@ -10,26 +10,51 @@ import personal_code_custom.PersonalInfo;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class JavaServer {
 
-    public static void main(String[] args) throws IOException {
+
+
+    public static void main(String[] args)  {
+        handleRun();
+    }
+
+    static void handleRun() {
+        try {
+            run();
+        } catch (Exception e) {
+            e.printStackTrace();
+
+        }
+    }
+
+    private static void run() throws IOException, URISyntaxException {
+        boolean running = true;
         int port = 8080;
         ServerSocket server = new ServerSocket(port);
+        Socket client = new Socket();
         System.out.println("Listening for connection on port " + port);
-        while (true) {
-            try (Socket client = server.accept()) {
-                handleRequest(client);
-            }}}
+        while (running) {
+            try {
+                client = server.accept();
+            } catch (Exception e) {
+                e.printStackTrace();
+                client.close();
+            }
+            handleRequest(client);
+        }
+    }
 
-    private static void handleRequest(Socket client) throws IOException {
+    private static void handleRequest(Socket client) throws IOException, URISyntaxException {
         InputStreamReader is = new InputStreamReader(client.getInputStream());
         BufferedReader bf = new BufferedReader(is);
         String firstLine = bf.readLine();
@@ -38,6 +63,41 @@ public class JavaServer {
         String wholePath = firstLine.split(" ")[1];
         String path;
         List<Headers> headers = getHeaders(bf);
+
+        try {
+            String username = "1";
+            String password = "1";
+            OutputStream out = client.getOutputStream();
+            out.write(("HTTP/1.1 401 Unauthorized \r\n").getBytes());
+            out.write(("ContentType: text/html\r\n").getBytes());
+            out.write(("WWW-Authenticate: Basic ").getBytes());
+            out.write("\r\n".getBytes());
+            out.flush();
+
+            for (Headers header : headers) {
+                if (header.getName().equals("Authorization")) {
+                    String message = header.getValue().split(" ")[1];
+                    String s = new String(Base64.getDecoder().decode(message));
+                    System.out.println(s);
+                    String u = s.split(":")[0];
+                    String p = s.split(":")[1];
+
+                    if ((Objects.equals(u, username)) && (Objects.equals(p, password))) {
+                        handleResponseToBrowser(client, "200 ok", "text/html", "WELCOME".getBytes());
+                        client.close();
+
+//                        break;
+                    } else {
+                        System.out.println("CLOSE");
+                    }
+
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
         Map<String, String> paramsMap = new HashMap<>();
         if (wholePath.contains("?") && wholePath.contains("=")) {
             path = getParamsAndPath(wholePath, paramsMap);
@@ -55,11 +115,15 @@ public class JavaServer {
         }
     }
 
+    private static String basicAuth(String username, String password) {
+        return "Basic " + Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+    }
+
     private static List<Headers> getHeaders(BufferedReader bf) throws IOException {
         String line = bf.readLine();
         List<Headers> headers = new ArrayList<>();
         while (!line.isEmpty()) {
-            headers.add(new Headers(line.split(" ")[0], line.split(" ")[1]));
+            headers.add(new Headers(line.split(": ")[0], line.split(": ")[1]));
             line = bf.readLine();
             if (line.isEmpty()) {
                 break;
@@ -92,14 +156,13 @@ public class JavaServer {
     private static String getRequestBodyString(BufferedReader bf, Request request) throws IOException {
         int contentLength = 0;
         for (Headers header : request.getHeaders()) {
-            if (header.getName().equals("Content-Length:")) {
+            if (header.getName().equals("Content-Length")) {
                 contentLength = Integer.parseInt(header.getValue());
                 break;
             }}
         char[] buf = new char[contentLength];
         bf.read(buf);
-        String requestBodyString = new String(buf);
-        return requestBodyString;
+        return new String(buf);
     }
 
     private static void generateRequestBodyWithParams(Socket client, Request request, String requestBodyString) throws IOException {
