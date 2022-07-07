@@ -97,10 +97,8 @@ public class JavaServer {
                 String s = new String(Base64.getDecoder().decode(message));
                 if (isValidPassword(s)) {
                     result = true;
-                }break;
-            } else {
-                result = false;
-            }}
+                }
+            } }
         return result;
     }
 
@@ -260,7 +258,7 @@ public class JavaServer {
         out.write(content);
         out.write("\r\n\r\n".getBytes());
         out.flush();
-//        client.close();
+        client.close();
     }
 
     private static void addPersonalInfoToList(Socket client, PersonalInfo person) throws IOException {
