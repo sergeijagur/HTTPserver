@@ -28,7 +28,6 @@ public class JavaServer {
             run();
         } catch (Exception e) {
             e.printStackTrace();
-
         }
     }
 
