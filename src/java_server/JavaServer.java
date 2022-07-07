@@ -10,11 +10,6 @@ import personal_code_custom.PersonalInfo;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,7 +32,7 @@ public class JavaServer {
         }
     }
 
-    private static void run() throws IOException, URISyntaxException {
+    private static void run() throws IOException {
         boolean running = true;
         int port = 8080;
         ServerSocket server = new ServerSocket(port);
@@ -54,7 +49,7 @@ public class JavaServer {
         }
     }
 
-    private static void handleRequest(Socket client) throws IOException, URISyntaxException {
+    private static void handleRequest(Socket client) throws IOException {
         InputStreamReader is = new InputStreamReader(client.getInputStream());
         BufferedReader bf = new BufferedReader(is);
         String firstLine = bf.readLine();
@@ -63,41 +58,6 @@ public class JavaServer {
         String wholePath = firstLine.split(" ")[1];
         String path;
         List<Headers> headers = getHeaders(bf);
-
-        try {
-            String username = "1";
-            String password = "1";
-            OutputStream out = client.getOutputStream();
-            out.write(("HTTP/1.1 401 Unauthorized \r\n").getBytes());
-            out.write(("ContentType: text/html\r\n").getBytes());
-            out.write(("WWW-Authenticate: Basic ").getBytes());
-            out.write("\r\n".getBytes());
-            out.flush();
-
-            for (Headers header : headers) {
-                if (header.getName().equals("Authorization")) {
-                    String message = header.getValue().split(" ")[1];
-                    String s = new String(Base64.getDecoder().decode(message));
-                    System.out.println(s);
-                    String u = s.split(":")[0];
-                    String p = s.split(":")[1];
-
-                    if ((Objects.equals(u, username)) && (Objects.equals(p, password))) {
-                        handleResponseToBrowser(client, "200 ok", "text/html", "WELCOME".getBytes());
-                        client.close();
-
-//                        break;
-                    } else {
-                        System.out.println("CLOSE");
-                    }
-
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
         Map<String, String> paramsMap = new HashMap<>();
         if (wholePath.contains("?") && wholePath.contains("=")) {
             path = getParamsAndPath(wholePath, paramsMap);
@@ -111,12 +71,44 @@ public class JavaServer {
         } else if (request.getMethod().equals("POST")) {
             getRequestBody(client, bf, request);
         } else {
+            if (request.getPath().equals("/personal-code-generator.html")) {
+                authenticationControl(client, request);
+            } else {
+                findFilesByPath(client, request.getPath());
+            }}}
+
+    private static void authenticationControl(Socket client, Request request) throws IOException {
+        if (isAuthorized(request)) {
             findFilesByPath(client, request.getPath());
-        }
+        } else {
+            OutputStream out = client.getOutputStream();
+            out.write(("HTTP/1.1 401 Unauthorized \r\n").getBytes());
+            out.write(("ContentType: text/html\r\n").getBytes());
+            out.write(("WWW-Authenticate: Basic realm=/User Visible Realm \r\n").getBytes());
+            out.flush();
+            client.close();
+        }}
+
+    private static boolean isAuthorized(Request request) {
+        boolean result = false;
+        for (Headers header : request.getHeaders()) {
+            if (header.getName().equals("Authorization")) {
+                String message = header.getValue().split(" ")[1];
+                String s = new String(Base64.getDecoder().decode(message));
+                if (isValidPassword(s)) {
+                    result = true;
+                }break;
+            } else {
+                result = false;
+            }}
+        return result;
     }
 
-    private static String basicAuth(String username, String password) {
-        return "Basic " + Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+    private static boolean isValidPassword(String s) {
+        String username = "user";
+        String password = "password";
+        String key = username + ":" + password;
+        return s.equals(key);
     }
 
     private static List<Headers> getHeaders(BufferedReader bf) throws IOException {
@@ -268,7 +260,7 @@ public class JavaServer {
         out.write(content);
         out.write("\r\n\r\n".getBytes());
         out.flush();
-        client.close();
+//        client.close();
     }
 
     private static void addPersonalInfoToList(Socket client, PersonalInfo person) throws IOException {
