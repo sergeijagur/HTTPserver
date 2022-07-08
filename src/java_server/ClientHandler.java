@@ -1,6 +1,7 @@
 package java_server;
 
 import com.google.gson.Gson;
+import java_server.service.BasicAuthentication;
 import java_server.service.FilesToServerService;
 import java_server.service.PersonalCodeControllerAndGeneratorService;
 import java_server.service.SalaryCalculatorService;
@@ -54,45 +55,11 @@ public class ClientHandler implements Runnable {
             getRequestBody(client, bf, request);
         } else {
             if (request.getPath().equals("/personal-code-generator.html")) {
-                authenticationControl(client, request);
+                BasicAuthentication.authenticationControl(client, request);
             } else {
                 findFilesByPath(client, request.getPath());
             }
         }
-    }
-
-    private static void authenticationControl(Socket client, Request request) throws IOException {
-        if (isAuthorized(request)) {
-            findFilesByPath(client, request.getPath());
-        } else {
-            OutputStream out = client.getOutputStream();
-            out.write(("HTTP/1.1 401 Unauthorized \r\n").getBytes());
-            out.write(("ContentType: text/html\r\n").getBytes());
-            out.write(("WWW-Authenticate: Basic realm=/User Visible Realm \r\n").getBytes());
-            out.flush();
-            client.close();
-        }
-    }
-
-    private static boolean isAuthorized(Request request) {
-        boolean result = false;
-        for (Headers header : request.getHeaders()) {
-            if (header.getName().equals("Authorization")) {
-                String message = header.getValue().split(" ")[1];
-                String s = new String(Base64.getDecoder().decode(message));
-                if (isValidPassword(s)) {
-                    result = true;
-                }
-            }
-        }
-        return result;
-    }
-
-    private static boolean isValidPassword(String s) {
-        String username = "user";
-        String password = "password";
-        String key = username + ":" + password;
-        return s.equals(key);
     }
 
     private static List<Headers> getHeaders(BufferedReader bf) throws IOException {
@@ -186,7 +153,7 @@ public class ClientHandler implements Runnable {
         handleResponseToBrowser(client, "200 OK", "application/json", response.getBytes());
     }
 
-    private static void findFilesByPath(Socket client, String path) throws IOException {
+    public static void findFilesByPath(Socket client, String path) throws IOException {
         Path filePath = getFilePath(path);
         if (Files.exists(filePath)) {
             String contentType = guessContentType(filePath);
