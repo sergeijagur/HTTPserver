@@ -8,8 +8,9 @@ import personal_code_custom.NewInfoRequest;
 import java.io.IOException;
 import java.net.Socket;
 
-import static java_server.JavaServer.getHtmlResponse;
-import static java_server.JavaServer.handleResponseToBrowser;
+import static java_server.ClientHandler.getHtmlResponse;
+import static java_server.ClientHandler.handleResponseToBrowser;
+
 
 public class PersonalCodeControllerAndGeneratorService {
 

@@ -2,6 +2,8 @@ package personal_code_custom;
 
 public class NewInfoRequest {
 
+
+
     private String birthOfDate;
     private String gender;
 

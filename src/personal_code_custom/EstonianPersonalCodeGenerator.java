@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.Random;
 
 
-
 public class EstonianPersonalCodeGenerator extends PersonalCode {
+
 
     NewInfoRequest request;
 

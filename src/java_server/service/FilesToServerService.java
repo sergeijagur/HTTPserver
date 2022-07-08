@@ -3,7 +3,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import static java_server.JavaServer.handleResponseToBrowser;
+
+import static java_server.ClientHandler.handleResponseToBrowser;
 
 public class FilesToServerService {
 
