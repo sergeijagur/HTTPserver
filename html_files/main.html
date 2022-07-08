@@ -11,6 +11,9 @@
 <br>
 <button value="" onclick="window.location.href='../pictures/photo.jpeg'">Picture</button>
 <br>
+<br>
+<button value="" onclick="logOut()">Remove authentication info</button>
+<br>
 <h1>
     PERSONAL CODE GENERATOR
 </h1>
@@ -79,16 +82,14 @@
 </html>
 <script>
 
+    function logOut() {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", 'http://localhost:8080/logout', true);
+        xhr.setRequestHeader("Authorization", "Basic logout");
+        xhr.send();
+    setTimeout(function () {
+        window.location.href = 'http://localhost:8080/';
+    }, 200);
+    }
 
-    // function submitform(){
-    //     alert("Sending Json");
-    //     var xhr = new XMLHttpRequest();
-    //     xhr.open(form.method, form.action, true);
-    //     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-    //     var j = {
-    //         "first_name":"binchen",
-    //         "last_name":"heris",
-    //     };
-    //     xhr.send(JSON.stringify(j))
-    //
 </script>

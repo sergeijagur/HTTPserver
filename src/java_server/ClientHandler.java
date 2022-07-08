@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class ClientHandler implements Runnable {
 
@@ -33,32 +34,45 @@ public class ClientHandler implements Runnable {
     }
 
     private static void handleRequest(Socket client) throws IOException {
-        InputStreamReader is = new InputStreamReader(client.getInputStream());
-        BufferedReader bf = new BufferedReader(is);
-        String firstLine = bf.readLine();
-        System.out.println(firstLine);
-        String method = firstLine.split(" ")[0];
-        String wholePath = firstLine.split(" ")[1];
-        String path;
-        List<Headers> headers = getHeaders(bf);
-        Map<String, String> paramsMap = new HashMap<>();
-        if (wholePath.contains("?") && wholePath.contains("=")) {
-            path = getParamsAndPath(wholePath, paramsMap);
-        } else {
-            path = wholePath;
-            paramsMap = null;
-        }
-        Request request = new Request(method, path, null, paramsMap, headers);
-        if (request.getMethod().equals("GET") && !(request.getParams() == null)) {
-            handleRequestURIWithParameters(request, client);
-        } else if (request.getMethod().equals("POST")) {
-            getRequestBody(client, bf, request);
-        } else {
-            if (request.getPath().equals("/personal-code-generator.html")) {
-                BasicAuthentication.authenticationControl(client, request);
+        try {
+            InputStreamReader is = new InputStreamReader(client.getInputStream());
+            BufferedReader bf = new BufferedReader(is);
+            String firstLine = bf.readLine();
+            System.out.println(firstLine);
+            String method = firstLine.split(" ")[0];
+            String wholePath = firstLine.split(" ")[1];
+            String path;
+            List<Headers> headers = getHeaders(bf);
+            Map<String, String> paramsMap = new HashMap<>();
+            if (wholePath.contains("?") && wholePath.contains("=")) {
+                path = getParamsAndPath(wholePath, paramsMap);
             } else {
-                findFilesByPath(client, request.getPath());
+                path = wholePath;
+                paramsMap = null;
             }
+            Request request = new Request(method, path, null, paramsMap, headers);
+            if (request.getMethod().equals("GET") && !(request.getParams() == null)) {
+                handleRequestURIWithParameters(request, client);
+            } else if (request.getMethod().equals("POST")) {
+                getRequestBody(client, bf, request);
+            } else {
+                if (request.getPath().equals("/personal-code-generator.html")) {
+                    BasicAuthentication.authenticationControl(client, request);
+                } else if (request.getPath().equals("/logout")) {
+                    OutputStream out = client.getOutputStream();
+                    out.write(("HTTP/1.1 401 Unauthorized \r\n").getBytes());
+//                    out.write(("ContentType: text/html\r\n").getBytes());
+//                    out.write(("WWW-Authenticate: Basic realm=/User Visible Realm \r\n").getBytes());
+                    out.flush();
+                    client.close();
+                } else {
+                    findFilesByPath(client, request.getPath());
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            client.close();
         }
     }
 

@@ -50,7 +50,6 @@
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4 && xhr.status === 200) {
                 // document.write(this.responseText);
-
                 const Data = JSON.parse(xhr.responseText);
                 document.getElementById('first').value = Data.firstName;
                 document.getElementById('last').value = Data.lastName;
