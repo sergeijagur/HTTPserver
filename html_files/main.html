@@ -65,8 +65,8 @@
     UPLOAD FILE
 </h1>
 <form method="POST" action="fileuploadservlet" enctype="multipart/form-data">
-    <input type="file" name="file" />
-    <input type="submit" value="Upload" />
+    <input type="file" name="file" id="file" />
+    <input type="submit" onclick="send()" value="Upload" />
 </form>
 
 <h1>
@@ -90,6 +90,28 @@
     setTimeout(function () {
         window.location.href = 'http://localhost:8080/';
     }, 200);
+    }
+
+    function send() {
+
+        let formData = new FormData();
+        formData.append('file', document.getElementById('file').value);
+        const xhr = new XMLHttpRequest();
+        const url = "http://localhost:8080/fileuploadservlet";
+        xhr.open("POST", url, true);
+        // xhr.setRequestHeader("Content-Type", "multipart/form-data");
+        // xhr.onreadystatechange = function () {
+        //     if (xhr.readyState === 4 && xhr.status === 200) {
+        //         // document.write(this.responseText);
+        //         const Data = JSON.parse(xhr.responseText);
+        //         document.getElementById('first').value = Data.firstName;
+        //         document.getElementById('last').value = Data.lastName;
+        //         document.getElementById('bd').value = Data.dateOfBirth;
+        //         document.getElementById('pk').value = Data.personalCode;
+        //         // document.getElementById('bd').value = Data.birthDay;
+        //     }
+        // };
+        xhr.send(formData);
     }
 
 </script>

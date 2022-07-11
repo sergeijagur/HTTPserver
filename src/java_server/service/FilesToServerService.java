@@ -9,6 +9,7 @@ import static java_server.ClientHandler.handleResponseToBrowser;
 public class FilesToServerService {
 
     public static void saveFile(Socket client, String requestBody) throws IOException {
+        System.out.println(requestBody);
         String fileName = requestBody.split("\r\n")[1].split(" ")[3].split("=")[1];
         String fn = fileName.substring(1, fileName.length() - 1);
         System.out.println(fn);
